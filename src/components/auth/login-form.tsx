@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
+import React, { useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -19,7 +20,6 @@ import { Separator } from "@/components/ui/separator"
 import { UserRole, type Doctor, type Receptionist, type Pharmacist } from "@/lib/types"
 import { getDoctors, getPharmacists, getReceptionists } from "@/lib/data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
-import React, { useEffect } from "react"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -38,7 +38,7 @@ export function LoginForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
+      email: "staff@medichain.com", // Pre-filled for demo purposes
       password: "password123", // Pre-filled for demo purposes
       role: UserRole.Doctor,
     },
@@ -73,7 +73,8 @@ export function LoginForm() {
   }
   
   function onGoogleSignIn() {
-    router.push('/admin/dashboard')
+    // In a real app, you'd call Firebase Google OAuth provider here
+    router.push(`/admin/dashboard`)
   }
 
   const staffByRole = {
@@ -120,7 +121,7 @@ export function LoginForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role (for simulation)</FormLabel>
-               <Select onValueChange={(value) => { field.onChange(value); form.resetField("staffId"); }} defaultValue={field.value}>
+               <Select onValueChange={(value) => { field.onChange(value); form.setValue("staffId", ""); }} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role to log in as" />
@@ -151,7 +152,8 @@ export function LoginForm() {
                     </FormControl>
                     <SelectContent>
                       {currentStaff.data?.map(staff => (
-                        <SelectItem key={staff.id} value={staff.id}>{staff.name}</SelectItem>
+                        // @ts-ignore - name/fullName is handled by the data source
+                        <SelectItem key={staff.id} value={staff.id}>{staff.name || staff.fullName}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

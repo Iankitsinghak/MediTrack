@@ -4,6 +4,7 @@
 import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist } from "./types";
 import { add, format, subDays } from "date-fns";
 
+// Expanded dummy data for showcase purposes
 const doctors: Omit<Doctor, 'createdAt' | 'email' | 'password' | 'role'>[] = [
   { id: "doc1", name: "Dr. Evelyn Reed", department: "Cardiology" },
   { id: "doc2", name: "Dr. Samuel Green", department: "Neurology" },
@@ -15,6 +16,7 @@ const receptionists: Omit<Receptionist, 'createdAt' | 'email' | 'password' | 'ro
     { id: "rec1", name: "Olivia Martin" },
     { id: "rec2", name: "Liam Harris" },
     { id: "rec3", name: "Sophia Clark" },
+    { id: "rec4", name: "Jacob Lewis" },
 ];
 
 const pharmacists: Omit<Pharmacist, 'createdAt' | 'email' | 'password' | 'role'>[] = [
