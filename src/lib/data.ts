@@ -1,17 +1,39 @@
 // In a real application, this would be a database connection.
 // For this prototype, we're using in-memory data that persists in localStorage to simulate a backend.
 
-import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist, BaseUser, Appointment } from "./types";
+import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist, BaseUser, Admin, Appointment } from "./types";
 import { add, format, subDays } from "date-fns";
 import { db } from './firebase';
 import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/firestore';
 
 
-// --- Data Access & Mutation Functions for Staff ---
-// These are no longer needed as we will use the useFirestore hook directly in the components.
-export const getDoctors = (): Doctor[] => [];
-export const getReceptionists = (): Receptionist[] => [];
-export const getPharmacists = (): Pharmacist[] => [];
+// --- Pre-populated Mock Staff Data for Display ---
+const initialDoctors: Doctor[] = [
+    { id: "doc1", fullName: "Dr. Evelyn Reed", email: "evelyn.reed@medichain.com", role: UserRole.Doctor, department: "Cardiology", createdAt: new Date() },
+    { id: "doc2", fullName: "Dr. Samuel Green", email: "samuel.green@medichain.com", role: UserRole.Doctor, department: "Pediatrics", createdAt: new Date() },
+    { id: "doc3", fullName: "Dr. Isabella White", email: "isabella.white@medichain.com", role: UserRole.Doctor, department: "Neurology", createdAt: new Date() },
+    { id: "doc4", fullName: "Dr. James Black", email: "james.black@medichain.com", role: UserRole.Doctor, department: "Orthopedics", createdAt: new Date() },
+];
+
+const initialReceptionists: Receptionist[] = [
+    { id: "rec1", fullName: "Olivia Brown", email: "olivia.brown@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
+    { id: "rec2", fullName: "Liam Jones", email: "liam.jones@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
+    { id: "rec3", fullName: "Emma Garcia", email: "emma.garcia@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
+];
+
+const initialPharmacists: Pharmacist[] = [
+    { id: "phar1", fullName: "Noah Martinez", email: "noah.martinez@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: "phar2", fullName: "Ava Robinson", email: "ava.robinson@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
+];
+
+const initialAdmins: Admin[] = [
+    { id: "adm1", fullName: "Sophia Clark", email: "sophia.clark@medichain.com", role: UserRole.Admin, createdAt: new Date() }
+];
+
+export const getDoctors = (): Doctor[] => initialDoctors;
+export const getReceptionists = (): Receptionist[] => initialReceptionists;
+export const getPharmacists = (): Pharmacist[] => initialPharmacists;
+export const getAdmins = (): Admin[] => initialAdmins;
 
 
 // --- Other Mock Data (unchanged) ---

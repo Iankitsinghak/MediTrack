@@ -169,7 +169,7 @@ export function EmailLoginForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Your Name</FormLabel>
-                <Select onValueChange={handleStaffChange} value={field.value} defaultValue="">
+                <Select onValueChange={handleStaffChange} value={field.value || ''} defaultValue="">
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={roleToStaffList[selectedRole].loading ? "Loading..." : "Select your name"} />

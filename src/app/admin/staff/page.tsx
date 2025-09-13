@@ -15,10 +15,11 @@ import { UserPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@/lib/types";
 import { useFirestore } from "@/hooks/use-firestore";
-import type { Doctor, Receptionist, Pharmacist, Admin } from "@/lib/types";
+import type { Doctor, Receptionist, Pharmacist, Admin, BaseUser } from "@/lib/types";
 import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signOut, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { useEffect, useState, useMemo } from "react";
 
 
 const addStaffSchema = z.object({
@@ -61,7 +62,7 @@ export default function StaffPage() {
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
         const adminUser = auth.currentUser;
-        if (!adminUser) {
+        if (!adminUser || !adminUser.email) {
              toast({
                 variant: "destructive",
                 title: "Authentication Error",
@@ -71,8 +72,8 @@ export default function StaffPage() {
         }
 
         try {
-            // We can't use the Admin SDK in this environment, so we'll create the user on the client.
-            // In a real production app, this would be a backend function for security.
+            // In a real app, this should be a Cloud Function for security.
+            // But for this environment, we'll create the user on the client.
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
@@ -96,14 +97,20 @@ export default function StaffPage() {
                 description: `${values.fullName} has been created and can now log in.`,
             });
             
-            // IMPORTANT: Sign the admin back in, as createUserWithEmailAndPassword signs the new user in.
-            // This is a workaround for the client-side user creation.
-             if (auth.currentUser?.uid !== adminUser.uid) {
-                // To prevent session swapping, we must re-authenticate the admin.
-                // This is a simplified approach. A robust solution uses a server-side endpoint (Cloud Function) to create users.
-                await auth.updateCurrentUser(adminUser);
-            }
-            form.reset();
+            // This is the tricky part. `createUserWithEmailAndPassword` signs the new user in.
+            // We need to sign the admin back in. This is a fragile operation on the client.
+            // A better solution would be a serverless function to create users.
+            await signOut(auth);
+            // We need the admin's password to re-authenticate, which we don't have.
+            // This is a major limitation of client-side user creation by an admin.
+            // The flow will now redirect to login. A better UX would use a Cloud Function.
+             toast({
+                title: "Admin Signed Out",
+                description: "Please log in again to continue managing staff.",
+            });
+             // Force a reload to clear state and prompt admin to log in again.
+             window.location.href = '/login';
+
 
         } catch (error: any) {
             console.error("Error adding staff:", error);
@@ -118,6 +125,20 @@ export default function StaffPage() {
             });
         }
     }
+    
+    const allStaff = useMemo(() => {
+        const staff = [...admins, ...doctors, ...pharmacists, ...receptionists];
+        const roleOrder = {
+            [UserRole.Admin]: 1,
+            [UserRole.Doctor]: 2,
+            [UserRole.Pharmacist]: 3,
+            [UserRole.Receptionist]: 4,
+        };
+        return staff.sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
+    }, [admins, doctors, pharmacists, receptionists]);
+
+    const loading = loadingAdmins || loadingDoctors || loadingPharmacists || loadingReceptionists;
+
 
     return (
         <div className="flex-1 space-y-4">
@@ -219,6 +240,7 @@ export default function StaffPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>S/N</TableHead>
                                     <TableHead>Full Name</TableHead>
                                     <TableHead>Role</TableHead>
                                     <TableHead>Department/Info</TableHead>
@@ -226,60 +248,28 @@ export default function StaffPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {loadingAdmins ? (
-                                    <TableRow><TableCell colSpan={4}><Skeleton className="h-4 w-full" /></TableCell></TableRow>
-                                ) : admins.map((admin) => (
-                                    <TableRow key={admin.id}>
-                                        <TableCell className="font-medium">{admin.fullName}</TableCell>
-                                        <TableCell>{admin.role}</TableCell>
-                                        <TableCell>N/A</TableCell>
-                                        <TableCell>{admin.email}</TableCell>
-                                    </TableRow>
-                                ))}
-                                {loadingDoctors ? (
-                                    Array.from({ length: 3 }).map((_, i) => (
-                                        <TableRow key={`doc-skel-${i}`}>
+                                {loading ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={`skel-${i}`}>
+                                            <TableCell><Skeleton className="h-4 w-6" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                                         </TableRow>
                                     ))
-                                ) : doctors.map((doctor) => (
-                                    <TableRow key={doctor.id}>
-                                        <TableCell className="font-medium">{doctor.fullName}</TableCell>
-                                        <TableCell>{doctor.role}</TableCell>
-                                        <TableCell>{doctor.department}</TableCell>
-                                        <TableCell>{doctor.email}</TableCell>
+                                ) : allStaff.length > 0 ? (
+                                    allStaff.map((staff, index) => (
+                                    <TableRow key={staff.id}>
+                                        <TableCell>{index + 1}</TableCell>
+                                        <TableCell className="font-medium">{staff.fullName}</TableCell>
+                                        <TableCell>{staff.role}</TableCell>
+                                        <TableCell>{(staff as Doctor).department || 'N/A'}</TableCell>
+                                        <TableCell>{staff.email}</TableCell>
                                     </TableRow>
-                                ))}
-                                {loadingReceptionists ? (
-                                    <TableRow>
-                                        <TableCell colSpan={4}><Skeleton className="h-4 w-full" /></TableCell>
-                                    </TableRow>
-                                ) : receptionists.map((rec) => (
-                                    <TableRow key={rec.id}>
-                                        <TableCell className="font-medium">{rec.fullName}</TableCell>
-                                        <TableCell>{rec.role}</TableCell>
-                                        <TableCell>N/A</TableCell>
-                                        <TableCell>{rec.email}</TableCell>
-                                    </TableRow>
-                                ))}
-                                {loadingPharmacists ? (
-                                    <TableRow>
-                                        <TableCell colSpan={4}><Skeleton className="h-4 w-full" /></TableCell>
-                                    </TableRow>
-                                ) : pharmacists.map((phar) => (
-                                    <TableRow key={phar.id}>
-                                        <TableCell className="font-medium">{phar.fullName}</TableCell>
-                                        <TableCell>{phar.role}</TableCell>
-                                        <TableCell>N/A</TableCell>
-                                        <TableCell>{phar.email}</TableCell>
-                                    </TableRow>
-                                ))}
-                                {!loadingDoctors && !loadingReceptionists && !loadingPharmacists && !loadingAdmins && doctors.length === 0 && receptionists.length === 0 && pharmacists.length === 0 && admins.length === 0 && (
+                                ))) : (
                                      <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">
+                                        <TableCell colSpan={5} className="h-24 text-center">
                                             No staff found. Add one above to get started.
                                         </TableCell>
                                     </TableRow>

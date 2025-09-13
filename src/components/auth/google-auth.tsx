@@ -26,82 +26,12 @@ export function GoogleSignInButton() {
     const router = useRouter();
 
     const onGoogleSignIn = async () => {
-        const provider = new GoogleAuthProvider();
-        try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-            
-            // Check if the user exists in any of our role collections
-            const adminDoc = await getDoc(doc(db, "admins", user.uid));
-            if (adminDoc.exists()) {
-                router.push('/admin/dashboard');
-                toast({ title: "Login Successful", description: `Welcome back, Admin!` });
-                return;
-            }
-
-            const doctorDoc = await getDoc(doc(db, "doctors", user.uid));
-             if (doctorDoc.exists()) {
-                router.push(`/doctor/dashboard?doctorId=${user.uid}`);
-                toast({ title: "Login Successful", description: `Welcome back, Doctor!` });
-                return;
-            }
-
-            // This is a new user, create their profile.
-            // For simplicity in this prototype, the first user is admin, others are doctors.
-            // A real app would use a Cloud Function or an invite system.
-            const adminsQuery = await getDoc(doc(db, "admins_count", "count"));
-            const isAdminCollectionEmpty = !adminsQuery.exists() || adminsQuery.data().total === 0;
-            
-            let role = UserRole.Doctor;
-            let userProfile: any = {
-                uid: user.uid,
-                fullName: user.displayName,
-                email: user.email,
-                createdAt: serverTimestamp(),
-            };
-
-            if (isAdminCollectionEmpty) {
-                role = UserRole.Admin;
-                userProfile.role = UserRole.Admin;
-                await setDoc(doc(db, "admins", user.uid), userProfile);
-                // Simple counter to track if admin exists.
-                await setDoc(doc(db, "admins_count", "count"), { total: 1 });
-            } else {
-                 userProfile.role = UserRole.Doctor;
-                 userProfile.department = "General Medicine"; // Default department
-                 await setDoc(doc(db, "doctors", user.uid), userProfile);
-            }
-
-            toast({
-                title: "Account Created",
-                description: `Welcome, ${user.displayName}! Your account has been created.`,
-            });
-            
-            let dashboardPath = `/${role.toLowerCase()}/dashboard`;
-            if (role === 'Doctor') {
-                dashboardPath += `?doctorId=${user.uid}`;
-            }
-            router.push(dashboardPath);
-
-        } catch (error: any) {
-            console.error("Google Sign-In Error:", error);
-            let description = "An unexpected error occurred during Google sign-in.";
-            if (error.code === 'auth/popup-closed-by-user') {
-                description = "The sign-in window was closed. Please try again.";
-            } else if (error.code === 'auth/network-request-failed') {
-                description = "Network error. Please ensure you've authorized this domain in your Firebase console's Authentication settings.";
-            }
-             toast({
-                variant: "destructive",
-                title: "Sign-In Failed",
-                description: description,
-            });
-        }
+        // This component is no longer used.
     };
 
 
     return (
-        <Button variant="outline" className="w-full gap-2" onClick={onGoogleSignIn}>
+        <Button variant="outline" className="w-full gap-2" onClick={onGoogleSignIn} disabled>
             <GoogleIcon />
             Sign in with Google
         </Button>
