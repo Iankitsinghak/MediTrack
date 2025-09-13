@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, where, QueryConstraint } from 'firebase/firestore';
 
@@ -10,6 +10,14 @@ export function useFirestore<T>(collectionName: string, ...constraints: (QueryCo
   const [error, setError] = useState<Error | null>(null);
 
   const validConstraints = constraints.filter(c => c !== undefined) as QueryConstraint[];
+
+  // Create a stable dependency from the constraints
+  const constraintsJSON = useMemo(() => JSON.stringify(validConstraints.map(c => {
+      // This is a simplified way to serialize constraints.
+      // A more robust solution might inspect the constraint properties.
+      return c.type;
+  })), [validConstraints]);
+
 
   useEffect(() => {
     const q = query(collection(db, collectionName), ...validConstraints);
@@ -30,7 +38,7 @@ export function useFirestore<T>(collectionName: string, ...constraints: (QueryCo
     // Cleanup subscription on unmount
     return () => unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collectionName, ...validConstraints.map(c => c.toString())]); // Naive dependency array, might need optimization for complex constraints
+  }, [collectionName, constraintsJSON]); 
 
   return { data, loading, error };
 }
