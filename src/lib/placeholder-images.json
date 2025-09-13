@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-medical-team",
+      "description": "A diverse team of medical professionals looking at a tablet, conveying collaboration and technology in healthcare.",
+      "imageUrl": "https://picsum.photos/seed/med-team/600/400",
+      "imageHint": "medical team"
+    }
+  ]
 }
