@@ -15,14 +15,14 @@ import { UserPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@/lib/types";
 import { useFirestore } from "@/hooks/use-firestore";
-import type { Doctor, Receptionist, Pharmacist } from "@/lib/types";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, setDoc, doc } from "firebase/firestore";
+import type { Doctor, Receptionist, Pharmacist, Admin } from "@/lib/types";
+import { handleAddStaff } from "@/lib/actions";
 
 
 const addStaffSchema = z.object({
   fullName: z.string().min(3, "Full name is required"),
   email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.nativeEnum(UserRole),
   department: z.string().optional(),
 }).refine(data => {
@@ -42,13 +42,14 @@ export default function StaffPage() {
     const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
     const { data: receptionists, loading: loadingReceptionists } = useFirestore<Receptionist>('receptionists');
     const { data: pharmacists, loading: loadingPharmacists } = useFirestore<Pharmacist>('pharmacists');
-    const { data: admins, loading: loadingAdmins } = useFirestore<any>('admins');
+    const { data: admins, loading: loadingAdmins } = useFirestore<Admin>('admins');
 
     const form = useForm<z.infer<typeof addStaffSchema>>({
         resolver: zodResolver(addStaffSchema),
         defaultValues: {
             fullName: "",
             email: "",
+            password: "",
             role: UserRole.Doctor,
             department: ""
         }
@@ -57,38 +58,20 @@ export default function StaffPage() {
     const role = form.watch("role");
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
-        try {
-            // Since we're using Google Auth, we don't create auth users here anymore.
-            // We are just adding user profiles to Firestore. The user will need to sign up/in with Google.
-            const collectionName = `${values.role.toLowerCase()}s`;
-            
-            const staffData: any = {
-                fullName: values.fullName,
-                email: values.email,
-                role: values.role,
-                createdAt: serverTimestamp()
-            };
+        const result = await handleAddStaff(values);
 
-            if (values.role === UserRole.Doctor) {
-                staffData.department = values.department;
-            }
-
-            // We'll add the doc and let Firestore generate the ID.
-            // We'll need a way to associate this with a Google Auth user later.
-            await addDoc(collection(db, collectionName), staffData);
-            
+        if (result.error) {
             toast({
-                title: "Staff Profile Added",
-                description: `${values.fullName} has been added. They will need to log in with their Google account (${values.email}).`,
+                variant: "destructive",
+                title: "Failed to add staff",
+                description: result.error,
+            });
+        } else {
+            toast({
+                title: "Staff Member Added",
+                description: `${values.fullName} has been created and can now log in.`,
             });
             form.reset();
-        } catch (error) {
-             toast({
-                variant: "destructive",
-                title: "Failed to add staff member",
-                description: (error as Error).message,
-            });
-            console.error("Error adding staff:", error);
         }
     }
 
@@ -99,12 +82,12 @@ export default function StaffPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Add New Staff Member</CardTitle>
-                    <CardDescription>Add a new Doctor, Receptionist, or Pharmacist to the system. They will log in using their Google Account.</CardDescription>
+                    <CardDescription>Create a new account for a Doctor, Receptionist, or Pharmacist.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <FormField
                                     control={form.control}
                                     name="fullName"
@@ -121,8 +104,19 @@ export default function StaffPage() {
                                     name="email"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Google Account Email</FormLabel>
-                                            <FormControl><Input type="email" placeholder="staff@gmail.com" {...field} /></FormControl>
+                                            <FormLabel>Login Email</FormLabel>
+                                            <FormControl><Input type="email" placeholder="staff@medichain.com" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Password</FormLabel>
+                                            <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -138,7 +132,7 @@ export default function StaffPage() {
                                                     <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {Object.values(UserRole).map(r => (
+                                                    {Object.values(UserRole).filter(r => r !== UserRole.Admin).map(r => (
                                                         <SelectItem key={r} value={r}>{r}</SelectItem>
                                                     ))}
                                                 </SelectContent>
@@ -152,7 +146,7 @@ export default function StaffPage() {
                                     control={form.control}
                                     name="department"
                                     render={({ field }) => (
-                                        <FormItem>
+                                        <FormItem className="lg:col-span-4">
                                             <FormLabel>Department</FormLabel>
                                             <FormControl><Input placeholder="e.g. Cardiology" {...field} /></FormControl>
                                             <FormMessage />

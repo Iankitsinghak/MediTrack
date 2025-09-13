@@ -1,6 +1,9 @@
 import Link from "next/link"
-import { LoginForm } from "@/components/auth/login-form"
+import { Suspense } from "react"
+import { EmailLoginForm, GoogleSignInButton } from "@/components/auth/login-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+
 
 export default function LoginPage() {
   return (
@@ -12,12 +15,26 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
-          <CardDescription>Sign in with your Google account to continue.</CardDescription>
+          <CardDescription>Select your role to sign in to your account.</CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm />
+          <Suspense fallback={<div>Loading...</div>}>
+            <EmailLoginForm />
+          </Suspense>
+          <div className="relative my-6">
+            <Separator />
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+          <GoogleSignInButton />
           <div className="mt-4 text-center text-sm">
-            Need an account?{" "}
+            Need an admin account?{" "}
             <Link href="/signup" className="underline text-primary">
               Sign up here
             </Link>

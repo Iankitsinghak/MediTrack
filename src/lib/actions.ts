@@ -1,6 +1,10 @@
 "use server"
 
 import { summarizeConsultationNotes, SummarizeConsultationNotesOutput } from "@/ai/flows/summarize-patient-consultation-notes"
+import { auth, db } from "@/lib/firebase-admin";
+import { UserRole } from "./types";
+import { setDoc, doc, serverTimestamp, collection } from "firebase/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 
 export interface FormState {
   summary: SummarizeConsultationNotesOutput | null;
@@ -33,4 +37,57 @@ export async function handleSummarization(
       error: "An unexpected error occurred while summarizing the notes. Please try again.",
     }
   }
+}
+
+interface AddStaffValues {
+    fullName: string;
+    email: string;
+    password?: string;
+    role: UserRole;
+    department?: string;
+}
+
+export async function handleAddStaff(values: AddStaffValues): Promise<{ error?: string }> {
+    const { email, password, fullName, role, department } = values;
+    
+    // This server action requires elevated privileges, which we get from the admin-sdk
+    try {
+        // Create user in Firebase Auth
+        const userRecord = await auth.createUser({
+            email,
+            password,
+            displayName: fullName,
+        });
+
+        // Prepare user profile data for Firestore
+        const userProfile: any = {
+            uid: userRecord.uid,
+            fullName,
+            email,
+            role,
+            createdAt: serverTimestamp()
+        };
+
+        if (role === UserRole.Doctor && department) {
+            userProfile.department = department;
+        }
+
+        // Save user profile to the correct Firestore collection
+        const collectionName = `${role.toLowerCase()}s`;
+        
+        // We need to use the client 'db' object from 'firebase/firestore' for setDoc with serverTimestamp
+        // This is a bit of a workaround due to how server actions and client SDKs interact.
+        // A full solution might involve a dedicated API route.
+        // For our purpose, we'll use the admin SDK's firestore instance.
+        const firestore = getFirestore();
+        await firestore.collection(collectionName).doc(userRecord.uid).set(userProfile);
+
+        return {};
+    } catch (error: any) {
+        console.error("Error adding staff:", error);
+        if (error.code === 'auth/email-already-exists') {
+            return { error: "This email address is already in use by another account." };
+        }
+        return { error: error.message || "An unexpected error occurred while creating the user." };
+    }
 }

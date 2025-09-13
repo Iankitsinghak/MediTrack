@@ -4,7 +4,7 @@
 import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist, BaseUser, Appointment } from "./types";
 import { add, format, subDays } from "date-fns";
 import { db } from './firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/firestore';
 
 
 // --- Data Access & Mutation Functions for Staff ---
@@ -105,7 +105,7 @@ export const registerPatient = (patientData: Omit<Patient, 'id'> & { bedId?: str
     return newPatient;
 };
 
-export const scheduleAppointment = async (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'doctorName' | 'status' | 'createdAt'>) => {
+export const scheduleAppointment = async (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'status' | 'createdAt'> & { doctorName: string }) => {
     const patient = patients.find(p => p.id === appointmentData.patientId);
     if (!patient) throw new Error("Patient not found");
 

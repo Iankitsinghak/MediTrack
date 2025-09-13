@@ -1,42 +1,84 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { auth } from '@/lib/firebase-admin';
+import { UserRole } from './lib/types';
 
-// This is a simulated user context.
-// In a real app, you'd get this from your auth provider (e.g., Firebase Auth, Supabase, etc.)
-const getUserRole = (request: NextRequest): string | null => {
-  // For demonstration, we'll check the path for the role.
-  // A real implementation would involve session cookies or auth tokens.
-  const path = request.nextUrl.pathname;
-  if (path.startsWith('/admin')) return 'admin';
-  if (path.startsWith('/doctor')) return 'doctor';
-  if (path.startsWith('/receptionist')) return 'receptionist';
-  if (path.startsWith('/pharmacist')) return 'pharmacist';
-  return null; // Or a default/guest role
-};
 
-export function middleware(request: NextRequest) {
-  const userRole = getUserRole(request);
-  const { pathname } = request.nextUrl;
-
-  // Allow public routes
-  if (['/', '/login', '/signup'].includes(pathname)) {
-    return NextResponse.next();
+// This function decodes the token and gets the user's role from custom claims or firestore
+// NOTE: This is a simplified version. A real-world app would have more robust error handling
+async function getUserRoleFromToken(request: NextRequest): Promise<UserRole | null> {
+  const token = request.cookies.get('firebase-auth-token')?.value;
+  if (!token) {
+    return null;
   }
 
-  // If there's a user role, verify they are accessing their own dashboard
-  if (userRole) {
-    const isAllowed = pathname.startsWith(`/${userRole}`);
-    if (!isAllowed) {
-      // If not allowed, redirect to their correct dashboard
-      return NextResponse.redirect(new URL(`/${userRole}/dashboard`, request.url));
+  try {
+    const decodedToken = await auth.verifyIdToken(token);
+    const uid = decodedToken.uid;
+    
+    // Check custom claims first
+    if (decodedToken.role) {
+      return decodedToken.role as UserRole;
     }
+
+    // Fallback to checking Firestore
+    const roles: UserRole[] = [UserRole.Admin, UserRole.Doctor, UserRole.Receptionist, UserRole.Pharmacist];
+    for (const role of roles) {
+        const doc = await auth.firestore().collection(`${role.toLowerCase()}s`).doc(uid).get();
+        if (doc.exists) {
+            return role;
+        }
+    }
+    return null;
+
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return null;
+  }
+}
+
+
+export async function middleware(request: NextRequest) {
+  const userRole = await getUserRoleFromToken(request);
+  const { pathname } = request.nextUrl;
+  
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup');
+  const isPublicRoute = pathname === '/';
+
+  if (isPublicRoute) {
+      return NextResponse.next();
   }
 
-  // If no role and not a public route, redirect to login
-  if (!userRole && !['/', '/login', '/signup'].some(p => pathname.startsWith(p))) {
+  // If user is logged in and tries to access login/signup, redirect them to their dashboard
+  if (userRole && isAuthRoute) {
+    let dashboardPath = `/${userRole.toLowerCase()}/dashboard`;
+     if (userRole === UserRole.Doctor) {
+        const token = request.cookies.get('firebase-auth-token')?.value;
+        const decodedToken = await auth.verifyIdToken(token!);
+        dashboardPath += `?doctorId=${decodedToken.uid}`;
+     }
+    return NextResponse.redirect(new URL(dashboardPath, request.url));
+  }
+
+  // If user is not logged in and tries to access a protected route, redirect to login
+  if (!userRole && !isAuthRoute) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
-
+  
+  // If user is logged in, check if they are authorized to access the route
+  if (userRole && !isAuthRoute) {
+    const allowedPath = `/${userRole.toLowerCase()}`;
+    if (!pathname.startsWith(allowedPath)) {
+       let dashboardPath = `/${userRole.toLowerCase()}/dashboard`;
+       if (userRole === UserRole.Doctor) {
+          const token = request.cookies.get('firebase-auth-token')?.value;
+          const decodedToken = await auth.verifyIdToken(token!);
+          dashboardPath += `?doctorId=${decodedToken.uid}`;
+       }
+       // If they are trying to access a path they don't have a role for, redirect to their own dashboard
+       return NextResponse.redirect(new URL(dashboardPath, request.url));
+    }
+  }
 
   return NextResponse.next();
 }
