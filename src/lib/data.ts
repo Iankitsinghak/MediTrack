@@ -36,13 +36,6 @@ const initialPharmacists: Pharmacist[] = [
     { id: 'phar4', uid: 'phar4', fullName: 'Vikram Malhotra', email: 'vikram.pharma@hospital.com', phone: '9876543224', role: UserRole.Pharmacist, createdAt: new Date() },
 ];
 
-
-export const getDoctors = (): Doctor[] => initialDoctors;
-export const getReceptionists = (): Receptionist[] => initialReceptionists;
-export const getPharmacists = (): Pharmacist[] => initialPharmacists;
-export const getAdmins = (): Admin[] => initialAdmins;
-
-
 // --- Other Mock Data (unchanged) ---
 
 const availableBeds = [

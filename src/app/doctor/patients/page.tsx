@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { getPatients, getDoctors } from "@/lib/data"
+import { getPatients } from "@/lib/data"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -11,7 +11,7 @@ import { useSearchParams } from 'next/navigation'
 
 export default function PatientsPage() {
     const searchParams = useSearchParams()
-    const loggedInDoctorId = searchParams.get('doctorId') || getDoctors()[0].id;
+    const loggedInDoctorId = searchParams.get('doctorId');
     
     const [allPatients, setAllPatients] = useState(getPatients());
     const [searchTerm, setSearchTerm] = useState("");
@@ -21,6 +21,7 @@ export default function PatientsPage() {
     }, []);
 
     const doctorPatients = useMemo(() => {
+        if (!loggedInDoctorId) return [];
         return allPatients.filter(patient => patient.doctorId === loggedInDoctorId);
     }, [allPatients, loggedInDoctorId]);
 
