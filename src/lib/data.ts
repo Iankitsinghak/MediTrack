@@ -1,27 +1,29 @@
 // In a real application, this would be a database connection.
 // For this prototype, we're using in-memory data to simulate a backend.
 
-import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist } from "./types";
+import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist, BaseUser } from "./types";
 import { add, format, subDays } from "date-fns";
 
 // Expanded dummy data for showcase purposes
-const doctors: Omit<Doctor, 'createdAt' | 'email' | 'password' | 'role'>[] = [
+let doctors: Omit<Doctor, 'createdAt' | 'email' | 'password' | 'role'>[] = [
   { id: "doc1", name: "Dr. Evelyn Reed", department: "Cardiology" },
   { id: "doc2", name: "Dr. Samuel Green", department: "Neurology" },
   { id: "doc3", name: "Dr. Isabella White", department: "Pediatrics" },
   { id: "doc4", name: "Dr. Mason King", department: "Orthopedics" },
 ];
 
-const receptionists: Omit<Receptionist, 'createdAt' | 'email' | 'password' | 'role'>[] = [
+let receptionists: Omit<Receptionist, 'createdAt' | 'email' | 'password' | 'role'>[] = [
     { id: "rec1", name: "Olivia Martin" },
     { id: "rec2", name: "Liam Harris" },
     { id: "rec3", name: "Sophia Clark" },
     { id: "rec4", name: "Jacob Lewis" },
 ];
 
-const pharmacists: Omit<Pharmacist, 'createdAt' | 'email' | 'password' | 'role'>[] = [
+let pharmacists: Omit<Pharmacist, 'createdAt' | 'email' | 'password' | 'role'>[] = [
     { id: "phar1", name: "Noah Lewis" },
     { id: "phar2", name: "Ava Walker" },
+    { id: "phar3", name: "Emma Johnson"},
+    { id: "phar4", name: "William Brown"},
 ];
 
 
@@ -87,9 +89,40 @@ let medicationOrders: MedicationOrder[] = [...initialMedicationOrders];
 
 // --- Data Access & Mutation Functions ---
 
-export const getDoctors = () => doctors;
-export const getReceptionists = () => receptionists;
-export const getPharmacists = () => pharmacists;
+export const getDoctors = () => doctors.map(d => ({ ...d, role: UserRole.Doctor, email: `${d.name.split(' ').join('.').toLowerCase()}@medichain.com`}));
+export const getReceptionists = () => receptionists.map(r => ({ ...r, role: UserRole.Receptionist, email: `${r.name.split(' ').join('.').toLowerCase()}@medichain.com`}));
+export const getPharmacists = () => pharmacists.map(p => ({ ...p, role: UserRole.Pharmacist, email: `${p.name.split(' ').join('.').toLowerCase()}@medichain.com`}));
+
+export const addStaff = (staffData: { fullName: string; email: string; role: UserRole; department?: string; }) => {
+    let newStaff: any;
+    switch (staffData.role) {
+        case UserRole.Doctor:
+            newStaff = {
+                id: `doc${doctors.length + 1}`,
+                name: staffData.fullName,
+                department: staffData.department || 'General',
+            };
+            doctors.push(newStaff);
+            return { ...newStaff, ...staffData };
+        case UserRole.Receptionist:
+            newStaff = {
+                id: `rec${receptionists.length + 1}`,
+                name: staffData.fullName,
+            };
+            receptionists.push(newStaff);
+            return { ...newStaff, ...staffData };
+        case UserRole.Pharmacist:
+             newStaff = {
+                id: `phar${pharmacists.length + 1}`,
+                name: staffData.fullName,
+            };
+            pharmacists.push(newStaff);
+            return { ...newStaff, ...staffData };
+        default:
+            throw new Error("Invalid role");
+    }
+};
+
 export const getAvailableBeds = () => availableBeds.filter(bed => !bed.isOccupied);
 export const getPatients = () => patients;
 export const getAppointments = () => appointments;
@@ -115,7 +148,7 @@ export const registerPatient = (patientData: Omit<Patient, 'id'> & { bedId?: str
 
 export const scheduleAppointment = (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'doctorName' | 'status' | 'createdAt'>) => {
     const patient = patients.find(p => p.id === appointmentData.patientId);
-    const doctor = doctors.find(d => d.id === appointmentData.doctorId);
+    const doctor = getDoctors().find(d => d.id === appointmentData.doctorId);
 
     if (!patient || !doctor) throw new Error("Patient or Doctor not found");
 

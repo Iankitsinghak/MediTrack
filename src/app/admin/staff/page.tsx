@@ -9,9 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useFirestore } from "@/hooks/use-firestore";
+import { addStaff } from "@/lib/data";
 import type { Doctor, Receptionist, Pharmacist } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +17,7 @@ import { UserPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@/lib/types";
 import { getDoctors, getPharmacists, getReceptionists } from "@/lib/data";
+import { useState } from "react";
 
 
 const addStaffSchema = z.object({
@@ -40,10 +39,12 @@ const addStaffSchema = z.object({
 
 export default function StaffPage() {
     const { toast } = useToast();
-    // Use mock data for the list
-    const doctors: Partial<Doctor>[] = getDoctors();
-    const receptionists: Partial<Receptionist>[] = getReceptionists();
-    const pharmacists: Partial<Pharmacist>[] = getPharmacists();
+    
+    // Initialize state with mock data
+    const [doctors, setDoctors] = useState<Partial<Doctor>[]>(getDoctors());
+    const [receptionists, setReceptionists] = useState<Partial<Receptionist>[]>(getReceptionists());
+    const [pharmacists, setPharmacists] = useState<Partial<Pharmacist>[]>(getPharmacists());
+    
     const loadingDoctors = false;
     const loadingReceptionists = false;
     const loadingPharmacists = false;
@@ -63,8 +64,6 @@ export default function StaffPage() {
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
         try {
-            // This part still writes to Firestore, so new staff will be saved.
-            // However, they won't appear in the list unless you refresh or switch to full Firestore fetching.
             if (values.role === UserRole.Admin) {
                 toast({
                     variant: "destructive",
@@ -74,25 +73,21 @@ export default function StaffPage() {
                 return;
             }
 
-            const collectionName = `${values.role.toLowerCase()}s`;
-            
-            const staffData: any = {
-                fullName: values.fullName,
-                email: values.email,
-                password: values.password, // In a real app, you would hash this
-                role: values.role,
-                createdAt: serverTimestamp(),
-            };
+            // Use the mock data function to add the new staff member
+            const newStaffMember = addStaff(values);
 
-            if (values.role === UserRole.Doctor) {
-                staffData.department = values.department;
+            // Update the local state to reflect the change
+            if (newStaffMember.role === UserRole.Doctor) {
+                setDoctors(prev => [...prev, newStaffMember as Doctor]);
+            } else if (newStaffMember.role === UserRole.Receptionist) {
+                setReceptionists(prev => [...prev, newStaffMember as Receptionist]);
+            } else if (newStaffMember.role === UserRole.Pharmacist) {
+                setPharmacists(prev => [...prev, newStaffMember as Pharmacist]);
             }
-
-            await addDoc(collection(db, collectionName), staffData);
             
             toast({
                 title: "Staff Member Added",
-                description: `${values.fullName} has been added to the system. Note: This list shows mock data.`,
+                description: `${values.fullName} has been added to the system.`,
             });
             form.reset();
         } catch (error) {
