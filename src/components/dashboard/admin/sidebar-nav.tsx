@@ -19,10 +19,10 @@ import { usePathname } from 'next/navigation'
 
 const adminNav = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "#", icon: Users, label: "Staff" },
-  { href: "#", icon: Banknote, label: "Billing" },
-  { href: "#", icon: BedDouble, label: "ICU/Beds" },
-  { href: "#", icon: Package, label: "Inventory" },
+  { href: "/admin/staff", icon: Users, label: "Staff" },
+  { href: "/admin/billing", icon: Banknote, label: "Billing" },
+  { href: "/admin/icu-beds", icon: BedDouble, label: "ICU/Beds" },
+  { href: "/admin/inventory", icon: Package, label: "Inventory" },
 ]
 
 export function SidebarNav() {

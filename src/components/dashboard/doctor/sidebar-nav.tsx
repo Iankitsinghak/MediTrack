@@ -20,11 +20,11 @@ import { usePathname } from 'next/navigation'
 
 const doctorNav = [
   { href: "/doctor/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "#", icon: Users, label: "Patients" },
-  { href: "#", icon: CalendarDays, label: "Appointments" },
-  { href: "#", icon: FileText, label: "Consultations" },
-  { href: "#", icon: FlaskConical, label: "Lab Requests" },
-  { href: "#", icon: Pill, label: "Prescriptions" },
+  { href: "/doctor/patients", icon: Users, label: "Patients" },
+  { href: "/doctor/appointments", icon: CalendarDays, label: "Appointments" },
+  { href: "/doctor/consultations", icon: FileText, label: "Consultations" },
+  { href: "/doctor/lab-requests", icon: FlaskConical, label: "Lab Requests" },
+  { href: "/doctor/prescriptions", icon: Pill, label: "Prescriptions" },
 ]
 
 

@@ -18,9 +18,9 @@ import { usePathname } from 'next/navigation'
 
 const receptionistNav = [
   { href: "/receptionist/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "#", icon: CalendarDays, label: "Appointments" },
-  { href: "#", icon: UserPlus, label: "Register Patient" },
-  { href: "#", icon: Users, label: "Patients" },
+  { href: "/receptionist/appointments", icon: CalendarDays, label: "Appointments" },
+  { href: "/receptionist/register-patient", icon: UserPlus, label: "Register Patient" },
+  { href: "/receptionist/patients", icon: Users, label: "Patients" },
 ]
 
 

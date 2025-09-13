@@ -19,10 +19,10 @@ import { usePathname } from 'next/navigation'
 
 const pharmacistNav = [
   { href: "/pharmacist/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "#", icon: Pill, label: "Inventory" },
-  { href: "#", icon: FileText, label: "Prescriptions" },
-  { href: "#", icon: Package, label: "Orders" },
-  { href: "#", icon: Truck, label: "Suppliers" },
+  { href: "/pharmacist/inventory", icon: Pill, label: "Inventory" },
+  { href: "/pharmacist/prescriptions", icon: FileText, label: "Prescriptions" },
+  { href: "/pharmacist/orders", icon: Package, label: "Orders" },
+  { href: "/pharmacist/suppliers", icon: Truck, label: "Suppliers" },
 ]
 
 
