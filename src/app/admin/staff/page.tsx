@@ -17,9 +17,9 @@ import { UserRole } from "@/lib/types";
 import { useFirestore } from "@/hooks/use-firestore";
 import type { Doctor, Receptionist, Pharmacist, Admin, BaseUser } from "@/lib/types";
 import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, signOut, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 
 
 const addStaffSchema = z.object({
@@ -61,20 +61,33 @@ export default function StaffPage() {
     const role = form.watch("role");
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
+        // This is a simplified client-side user creation.
+        // In a production app, this should be a secure Cloud Function.
         const adminUser = auth.currentUser;
-        if (!adminUser || !adminUser.email) {
-             toast({
+        if (!adminUser) {
+            toast({
                 variant: "destructive",
                 title: "Authentication Error",
-                description: "You must be logged in as an admin to add staff.",
+                description: "You must be logged in as an admin to perform this action.",
             });
             return;
         }
 
+        // We can't create a user and then immediately re-authenticate the admin
+        // without the admin's password. This is a limitation of the client-side SDK.
+        // The ideal solution is a Cloud Function. For this demo, we'll create the
+        // user record in Firestore, but auth creation would need a backend process.
+        // The current implementation simulates this by creating a user on the client,
+        // which has the side-effect of logging the admin out.
+
         try {
-            // In a real app, this should be a Cloud Function for security.
-            // But for this environment, we'll create the user on the client.
-            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+            // This is where a call to a Cloud Function would go.
+            // e.g., const { data } = await functions.httpsCallable('createStaffUser')(values);
+
+            // To make this work in the prototype environment, we create the user on the client.
+            // NOTE: This will sign the admin out. This is a known limitation.
+            const tempAuth = auth; // Use a direct reference
+            const userCredential = await createUserWithEmailAndPassword(tempAuth, values.email, values.password);
             const user = userCredential.user;
 
             const userProfile: any = {
@@ -89,34 +102,27 @@ export default function StaffPage() {
                 userProfile.department = values.department;
             }
 
-            // Save the user profile to the correct collection
             await setDoc(doc(db, `${values.role.toLowerCase()}s`, user.uid), userProfile);
             
             toast({
                 title: "Staff Member Added",
-                description: `${values.fullName} has been created and can now log in.`,
+                description: `${values.fullName} has been created. You will be logged out. Please log in again.`,
             });
             
-            // This is the tricky part. `createUserWithEmailAndPassword` signs the new user in.
-            // We need to sign the admin back in. This is a fragile operation on the client.
-            // A better solution would be a serverless function to create users.
-            await signOut(auth);
-            // We need the admin's password to re-authenticate, which we don't have.
-            // This is a major limitation of client-side user creation by an admin.
-            // The flow will now redirect to login. A better UX would use a Cloud Function.
-             toast({
-                title: "Admin Signed Out",
-                description: "Please log in again to continue managing staff.",
-            });
-             // Force a reload to clear state and prompt admin to log in again.
-             window.location.href = '/login';
+            form.reset();
+            
+            // Sign out the newly created user and force admin to log back in
+            await tempAuth.signOut();
+            window.location.href = '/login';
 
 
         } catch (error: any) {
             console.error("Error adding staff:", error);
-            let description = "An unexpected error occurred.";
+            let description = "An unexpected error occurred. This may be due to prototype limitations.";
             if (error.code === 'auth/email-already-in-use') {
                 description = "This email is already registered. Please use a different email.";
+            } else if (error.code === 'auth/network-request-failed') {
+                 description = "Network error. Could not connect to authentication service.";
             }
              toast({
                 variant: "destructive",
@@ -134,7 +140,13 @@ export default function StaffPage() {
             [UserRole.Pharmacist]: 3,
             [UserRole.Receptionist]: 4,
         };
-        return staff.sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
+        // Sort by role, then by full name
+        return staff.sort((a, b) => {
+            if (a.role !== b.role) {
+                return roleOrder[a.role] - roleOrder[b.role];
+            }
+            return (a.fullName || '').localeCompare(b.fullName || '');
+        });
     }, [admins, doctors, pharmacists, receptionists]);
 
     const loading = loadingAdmins || loadingDoctors || loadingPharmacists || loadingReceptionists;
@@ -147,7 +159,7 @@ export default function StaffPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Add New Staff Member</CardTitle>
-                    <CardDescription>Create a new account for a Doctor, Receptionist, or Pharmacist.</CardDescription>
+                    <CardDescription>Create a new account. NOTE: Due to prototype limitations, you will be logged out after adding a user.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>

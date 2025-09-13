@@ -13,17 +13,23 @@ const initialDoctors: Doctor[] = [
     { id: "doc2", fullName: "Dr. Samuel Green", email: "samuel.green@medichain.com", role: UserRole.Doctor, department: "Pediatrics", createdAt: new Date() },
     { id: "doc3", fullName: "Dr. Isabella White", email: "isabella.white@medichain.com", role: UserRole.Doctor, department: "Neurology", createdAt: new Date() },
     { id: "doc4", fullName: "Dr. James Black", email: "james.black@medichain.com", role: UserRole.Doctor, department: "Orthopedics", createdAt: new Date() },
+    { id: "doc5", fullName: "Dr. Chloe King", email: "chloe.king@medichain.com", role: UserRole.Doctor, department: "Oncology", createdAt: new Date() },
 ];
 
 const initialReceptionists: Receptionist[] = [
     { id: "rec1", fullName: "Olivia Brown", email: "olivia.brown@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
     { id: "rec2", fullName: "Liam Jones", email: "liam.jones@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
     { id: "rec3", fullName: "Emma Garcia", email: "emma.garcia@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
+    { id: "rec4", fullName: "William Smith", email: "william.smith@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
+    { id: "rec5", fullName: "Mia Johnson", email: "mia.johnson@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
 ];
 
 const initialPharmacists: Pharmacist[] = [
     { id: "phar1", fullName: "Noah Martinez", email: "noah.martinez@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
     { id: "phar2", fullName: "Ava Robinson", email: "ava.robinson@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: "phar3", fullName: "Lucas Taylor", email: "lucas.taylor@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: "phar4", fullName: "Isabella Wilson", email: "isabella.wilson@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: "phar5", fullName: "Mason Moore", email: "mason.moore@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
 ];
 
 const initialAdmins: Admin[] = [
