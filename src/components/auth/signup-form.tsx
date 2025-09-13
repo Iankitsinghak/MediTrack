@@ -92,8 +92,11 @@ export function SignupForm() {
 
   function onGoogleSignIn() {
     // In a real app, you'd call Firebase Google OAuth provider here
-    router.push("/doctor/dashboard")
+    router.push(`/doctor/dashboard?doctorId=doc1`)
   }
+
+  const availableRoles = Object.values(UserRole).filter(r => r !== UserRole.Doctor);
+
 
   return (
     <Form {...form}>
@@ -150,7 +153,7 @@ export function SignupForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {Object.values(UserRole).map(role => (
+                  {availableRoles.map(role => (
                     <SelectItem key={role} value={role}>{role}</SelectItem>
                   ))}
                 </SelectContent>

@@ -14,13 +14,13 @@ export interface User {
 }
 
 export interface Doctor {
-  id: string;
-  uid: string;
+  id: string; // This is the Firestore document ID
   fullName: string;
   email: string;
   role: UserRole.Doctor;
   department: string;
   createdAt: any; // Firestore timestamp
+  uid?: string; // This would be the Firebase Auth UID if you were linking them
 }
 
 
@@ -52,7 +52,7 @@ export interface Medicine {
 }
 
 export interface Supplier {
-  id: string;
+  id:string;
   name: string;
   contactPerson: string;
   phone: string;

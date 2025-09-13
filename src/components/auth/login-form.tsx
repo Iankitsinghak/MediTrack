@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { UserRole } from "@/lib/types"
-import { getDoctors } from "@/lib/data"
+import { UserRole, type Doctor } from "@/lib/types"
+import { useFirestore } from "@/hooks/use-firestore"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 import React from "react"
 
@@ -30,7 +30,8 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const router = useRouter()
-  const doctors = getDoctors()
+  const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -48,8 +49,11 @@ export function LoginForm() {
     let dashboardPath = `/${values.role.toLowerCase()}/dashboard`
 
     if (values.role === UserRole.Doctor) {
-        const doctorId = values.doctorId || doctors[0].id; // Default to first doctor if none selected
-        dashboardPath += `?doctorId=${doctorId}`;
+        if (!values.doctorId) {
+            form.setError("doctorId", { type: "manual", message: "Please select a doctor." });
+            return;
+        }
+        dashboardPath += `?doctorId=${values.doctorId}`;
     }
 
     router.push(dashboardPath)
@@ -58,7 +62,9 @@ export function LoginForm() {
   function onGoogleSignIn() {
     // In a real app, you'd call Firebase Google OAuth provider here
     // For now, we'll default to the doctor dashboard
-    router.push(`/doctor/dashboard?doctorId=${doctors[0].id}`)
+    if (doctors && doctors.length > 0) {
+      router.push(`/doctor/dashboard?doctorId=${doctors[0].id}`)
+    }
   }
 
   return (
@@ -122,13 +128,17 @@ export function LoginForm() {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a doctor to log in as" />
+                        <SelectValue placeholder={loadingDoctors ? "Loading doctors..." : "Select a doctor to log in as"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {doctors.map(doctor => (
-                        <SelectItem key={doctor.id} value={doctor.id}>{doctor.name}</SelectItem>
-                      ))}
+                      {loadingDoctors ? (
+                        <SelectItem value="loading" disabled>Loading...</SelectItem>
+                      ) : (
+                        doctors.map(doctor => (
+                          <SelectItem key={doctor.id} value={doctor.id}>{doctor.fullName}</SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -146,7 +156,7 @@ export function LoginForm() {
           OR
         </span>
       </div>
-      <Button variant="outline" className="w-full" onClick={onGoogleSignIn}>
+      <Button variant="outline" className="w-full" onClick={onGoogleSignIn} disabled={loadingDoctors}>
         <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-76.2 64.5C308.6 106.5 280.4 96 248 96c-84.3 0-152.3 67.8-152.3 151.8s68 151.8 152.3 151.8c99.1 0 127.9-81.5 133.7-114.3H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
         Sign in with Google
       </Button>
