@@ -1,11 +1,12 @@
 "use client"
 
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { handleGoogleSignIn } from "@/lib/auth-actions";
 import { useRouter } from "next/navigation";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { UserRole } from "@/lib/types";
 
 function GoogleIcon() {
     return (
@@ -30,15 +31,50 @@ export function GoogleSignInButton() {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
             
-            const { role, error } = await handleGoogleSignIn(user);
+            // Check if the user exists in any of our role collections
+            const adminDoc = await getDoc(doc(db, "admins", user.uid));
+            if (adminDoc.exists()) {
+                router.push('/admin/dashboard');
+                toast({ title: "Login Successful", description: `Welcome back, Admin!` });
+                return;
+            }
 
-            if (error) {
-                throw new Error(error);
+            const doctorDoc = await getDoc(doc(db, "doctors", user.uid));
+             if (doctorDoc.exists()) {
+                router.push(`/doctor/dashboard?doctorId=${user.uid}`);
+                toast({ title: "Login Successful", description: `Welcome back, Doctor!` });
+                return;
+            }
+
+            // This is a new user, create their profile.
+            // For simplicity in this prototype, the first user is admin, others are doctors.
+            // A real app would use a Cloud Function or an invite system.
+            const adminsQuery = await getDoc(doc(db, "admins_count", "count"));
+            const isAdminCollectionEmpty = !adminsQuery.exists() || adminsQuery.data().total === 0;
+            
+            let role = UserRole.Doctor;
+            let userProfile: any = {
+                uid: user.uid,
+                fullName: user.displayName,
+                email: user.email,
+                createdAt: serverTimestamp(),
+            };
+
+            if (isAdminCollectionEmpty) {
+                role = UserRole.Admin;
+                userProfile.role = UserRole.Admin;
+                await setDoc(doc(db, "admins", user.uid), userProfile);
+                // Simple counter to track if admin exists.
+                await setDoc(doc(db, "admins_count", "count"), { total: 1 });
+            } else {
+                 userProfile.role = UserRole.Doctor;
+                 userProfile.department = "General Medicine"; // Default department
+                 await setDoc(doc(db, "doctors", user.uid), userProfile);
             }
 
             toast({
-                title: "Login Successful",
-                description: `Welcome, ${user.displayName}!`,
+                title: "Account Created",
+                description: `Welcome, ${user.displayName}! Your account has been created.`,
             });
             
             let dashboardPath = `/${role.toLowerCase()}/dashboard`;
@@ -54,19 +90,19 @@ export function GoogleSignInButton() {
             if (error.code === 'auth/popup-closed-by-user') {
                 description = "The sign-in window was closed. Please try again.";
             } else if (error.code === 'auth/network-request-failed') {
-                description = "Network error. Please check your connection and ensure you've authorized this domain in your Firebase console.";
+                description = "Network error. Please ensure you've authorized this domain in your Firebase console's Authentication settings.";
             }
              toast({
                 variant: "destructive",
                 title: "Sign-In Failed",
-                description: error.message || description,
+                description: description,
             });
         }
     };
 
 
     return (
-        <Button variant="outline" className="w-full" onClick={onGoogleSignIn}>
+        <Button variant="outline" className="w-full gap-2" onClick={onGoogleSignIn}>
             <GoogleIcon />
             Sign in with Google
         </Button>
