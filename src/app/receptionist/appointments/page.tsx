@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { format, startOfDay } from "date-fns"
-import { getPatients, getDoctors, scheduleAppointment, getAppointments } from "@/lib/data"
+import { getPatients, scheduleAppointment, getAppointments } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -33,18 +33,14 @@ export default function AppointmentsPage() {
     
     // State for local mock data
     const [allPatients, setAllPatients] = useState<Patient[]>([]);
-    const [doctors, setDoctors] = useState<Partial<Doctor>[]>([]);
-    const [localAppointments, setLocalAppointments] = useState<Appointment[]>([]);
-
-    useEffect(() => {
-        setAllPatients(getPatients());
-        setDoctors(getDoctors());
-        setLocalAppointments(getAppointments());
-    }, []);
-
-    // Still fetch appointments from Firestore for real-time updates (can be removed if only mock is desired)
+    
+    const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
     const { data: firestoreAppointments, loading: loadingAppointments } = useFirestore<AppointmentWithDate>('appointments');
     
+    useEffect(() => {
+        setAllPatients(getPatients());
+    }, []);
+
     const [date, setDate] = useState<Date | undefined>(new Date())
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -55,21 +51,10 @@ export default function AppointmentsPage() {
             appointmentTime: "09:00",
         }
     });
-    
-    // When the modal opens, refetch doctors to get the latest list
-    useEffect(() => {
-        if(isModalOpen) {
-            setDoctors(getDoctors());
-        }
-    }, [isModalOpen])
-
 
     const appointmentsForSelectedDate = useMemo(() => {
         if (!date) return [];
-        const combinedAppointments = [...localAppointments, ...firestoreAppointments as Appointment[]];
-        const uniqueAppointments = Array.from(new Map(combinedAppointments.map(item => [item.id, item])).values());
-        
-        const filtered = uniqueAppointments.filter(appt => {
+        const filtered = firestoreAppointments.filter(appt => {
             const apptDate = appt.date?.toDate ? appt.date.toDate() : new Date(appt.date);
             return startOfDay(apptDate).getTime() === startOfDay(date).getTime()
         });
@@ -79,7 +64,7 @@ export default function AppointmentsPage() {
              const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
              return dateA.getTime() - dateB.getTime()
         });
-    }, [date, localAppointments, firestoreAppointments]);
+    }, [date, firestoreAppointments]);
     
     const handleDateSelect = (selectedDate: Date | undefined) => {
         setDate(selectedDate);
@@ -98,15 +83,20 @@ export default function AppointmentsPage() {
         const appointmentDateTime = new Date(values.appointmentDate);
         appointmentDateTime.setHours(hours, minutes);
 
+        const selectedDoctor = doctors.find(d => d.id === values.doctorId);
+        if (!selectedDoctor) {
+            toast({ variant: "destructive", title: "Doctor not found" });
+            return;
+        }
+
         try {
-            scheduleAppointment({
+            await scheduleAppointment({
                 patientId: values.patientId,
                 doctorId: values.doctorId,
+                doctorName: selectedDoctor.fullName!,
                 date: appointmentDateTime,
                 reason: values.reason,
             });
-
-            setLocalAppointments(getAppointments());
             
             toast({
                 title: "Appointment Scheduled",
@@ -218,11 +208,11 @@ export default function AppointmentsPage() {
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                      <SelectValue placeholder={"Select a doctor"} />
+                                                      <SelectValue placeholder={loadingDoctors ? "Loading..." : "Select a doctor"} />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {doctors.map(d => <SelectItem key={d.id} value={d.id!}>{d.name}</SelectItem>)}
+                                                    {doctors.map(d => <SelectItem key={d.id} value={d.id!}>{d.fullName}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />

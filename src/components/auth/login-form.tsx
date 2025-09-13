@@ -4,7 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
-import React, { useEffect, useState } from "react"
+import { signInWithEmailAndPassword } from "firebase/auth"
+import { collection, getDocs, query, where } from "firebase/firestore"
+import { auth, db } from "@/lib/firebase"
+import { useToast } from "@/hooks/use-toast"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -17,80 +20,91 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { UserRole, type Doctor, type Receptionist, type Pharmacist } from "@/lib/types"
-import { getDoctors, getPharmacists, getReceptionists } from "@/lib/data"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+import { UserRole } from "@/lib/types"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  role: z.nativeEnum(UserRole),
-  staffId: z.string().optional(),
 })
+
+async function getUserRoleByUid(uid: string): Promise<{ role: UserRole; id: string } | null> {
+  const collections: { name: string; role: UserRole }[] = [
+    { name: 'admins', role: UserRole.Admin },
+    { name: 'doctors', role: UserRole.Doctor },
+    { name: 'receptionists', role: UserRole.Receptionist },
+    { name: 'pharmacists', role: UserRole.Pharmacist },
+  ];
+
+  for (const { name, role } of collections) {
+    const q = query(collection(db, name), where("uid", "==", uid));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      return { role, id: doc.id };
+    }
+  }
+
+  return null;
+}
+
 
 export function LoginForm() {
   const router = useRouter()
-  
-  const [doctors, setDoctors] = useState<Partial<Doctor>[]>([])
-  const [receptionists, setReceptionists] = useState<Partial<Receptionist>[]>([])
-  const [pharmacists, setPharmacists] = useState<Partial<Pharmacist>[]>([])
+  const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "staff@medichain.com", 
-      password: "password123", 
-      role: UserRole.Doctor,
+      email: "",
+      password: "",
     },
   })
 
-  const role = form.watch("role")
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
 
-  // When role changes, or component mounts, refetch the data to ensure it's up-to-date
-  useEffect(() => {
-    setDoctors(getDoctors())
-    setReceptionists(getReceptionists())
-    setPharmacists(getPharmacists())
-  }, [role])
+      const roleInfo = await getUserRoleByUid(user.uid);
 
+      if (roleInfo) {
+        toast({
+          title: "Login Successful",
+          description: `Welcome back! Redirecting to your dashboard...`,
+        });
+        
+        let dashboardPath = `/${roleInfo.role.toLowerCase()}/dashboard`;
+        
+        // Append IDs for roles that need it for data filtering
+        if (roleInfo.role === UserRole.Doctor) {
+            dashboardPath += `?doctorId=${roleInfo.id}`;
+        } else if (roleInfo.role === UserRole.Receptionist) {
+            dashboardPath += `?receptionistId=${roleInfo.id}`;
+        } else if (roleInfo.role === UserRole.Pharmacist) {
+            dashboardPath += `?pharmacistId=${roleInfo.id}`;
+        }
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
-    let dashboardPath = `/${values.role.toLowerCase()}/dashboard`
-
-    if (values.role === UserRole.Admin) {
         router.push(dashboardPath);
-        return;
-    }
-    
-    if (!values.staffId) {
-        form.setError("staffId", { type: "manual", message: "Please select a staff member." });
-        return;
-    }
 
-    if (values.role === UserRole.Doctor) {
-        dashboardPath += `?doctorId=${values.staffId}`;
-    } else if (values.role === UserRole.Receptionist) {
-        dashboardPath += `?receptionistId=${values.staffId}`;
-    } else if (values.role === UserRole.Pharmacist) {
-        dashboardPath += `?pharmacistId=${values.staffId}`;
-    }
+      } else {
+        throw new Error("Account not found. Please contact Admin.");
+      }
 
-    router.push(dashboardPath)
+    } catch (error: any) {
+      console.error("Login Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
+    }
   }
-  
+
   function onGoogleSignIn() {
+    // This can be enhanced with Firebase Google Auth Provider
+    // For now, it simulates an Admin login for quick access
     router.push(`/admin/dashboard`)
   }
-
-  const staffByRole = {
-    [UserRole.Doctor]: { data: doctors, placeholder: "Select a doctor" },
-    [UserRole.Receptionist]: { data: receptionists, placeholder: "Select a receptionist" },
-    [UserRole.Pharmacist]: { data: pharmacists, placeholder: "Select a pharmacist" },
-    [UserRole.Admin]: { data: [], placeholder: "" }
-  }
-
-  const currentStaff = staffByRole[role];
 
   return (
     <Form {...form}>
@@ -121,52 +135,6 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Role (for simulation)</FormLabel>
-               <Select onValueChange={(value) => { field.onChange(value); form.setValue("staffId", ""); }} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role to log in as" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {Object.values(UserRole).map(role => (
-                    <SelectItem key={role} value={role}>{role}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {role !== UserRole.Admin && (
-           <FormField
-              control={form.control}
-              name="staffId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Select Staff Member</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={currentStaff.placeholder} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {currentStaff.data?.map(staff => (
-                        <SelectItem key={staff.id} value={staff.id!}>{staff.name || staff.fullName}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-        )}
         <Button type="submit" className="w-full">
           Log In
         </Button>

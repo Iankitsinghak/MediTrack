@@ -1,114 +1,25 @@
 // In a real application, this would be a database connection.
 // For this prototype, we're using in-memory data that persists in localStorage to simulate a backend.
 
-import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist, BaseUser } from "./types";
+import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist, BaseUser, Appointment } from "./types";
 import { add, format, subDays } from "date-fns";
-
-const DOCTORS_KEY = 'medichain_doctors';
-const RECEPTIONISTS_KEY = 'medichain_receptionists';
-const PHARMACISTS_KEY = 'medichain_pharmacists';
-
-// Initial seed data if localStorage is empty
-const initialDoctors: Omit<Doctor, 'createdAt' | 'email' | 'password' | 'role' | 'uid' | 'fullName'>[] = [
-  { id: "doc1", name: "Dr. Evelyn Reed", department: "Cardiology" },
-  { id: "doc2", name: "Dr. Samuel Green", department: "Neurology" },
-  { id: "doc3", name: "Dr. Isabella White", department: "Pediatrics" },
-  { id: "doc4", name: "Dr. Mason King", department: "Orthopedics" },
-];
-
-const initialReceptionists: Omit<Receptionist, 'createdAt' | 'email' | 'password' | 'role' | 'uid' | 'fullName'>[] = [
-    { id: "rec1", name: "Olivia Martin" },
-    { id: "rec2", name: "Liam Harris" },
-    { id: "rec3", name: "Sophia Clark" },
-    { id: "rec4", name: "Jacob Lewis" },
-];
-
-const initialPharmacists: Omit<Pharmacist, 'createdAt' | 'email' | 'password' | 'role' | 'uid' | 'fullName'>[] = [
-    { id: "phar1", name: "Noah Lewis" },
-    { id: "phar2", name: "Ava Walker" },
-];
-
-
-// --- Helper functions to interact with localStorage ---
-const getFromStorage = <T>(key: string, initialData: T[]): T[] => {
-    if (typeof window === 'undefined') return initialData;
-    try {
-        const item = window.localStorage.getItem(key);
-        if (item) {
-            return JSON.parse(item);
-        } else {
-            window.localStorage.setItem(key, JSON.stringify(initialData));
-            return initialData;
-        }
-    } catch (error) {
-        console.error(`Error reading from localStorage key “${key}”:`, error);
-        return initialData;
-    }
-};
-
-const saveToStorage = <T>(key: string, data: T[]) => {
-    if (typeof window === 'undefined') return;
-    try {
-        const serializedData = JSON.stringify(data);
-        window.localStorage.setItem(key, serializedData);
-    } catch (error) {
-        console.error(`Error writing to localStorage key “${key}”:`, error);
-    }
-};
+import { db } from './firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 
 // --- Data Access & Mutation Functions for Staff ---
 
 export const getDoctors = (): Doctor[] => {
-    const doctors = getFromStorage(DOCTORS_KEY, initialDoctors);
-    return doctors.map(d => ({ ...d, fullName: d.name, role: UserRole.Doctor, email: `${d.name?.split(' ').join('.').toLowerCase()}@medichain.com` } as Doctor));
+    return []; // Will be replaced by firestore
 }
 
 export const getReceptionists = (): Receptionist[] => {
-    const receptionists = getFromStorage(RECEPTIONISTS_KEY, initialReceptionists);
-    return receptionists.map(r => ({ ...r, fullName: r.name, role: UserRole.Receptionist, email: `${r.name?.split(' ').join('.').toLowerCase()}@medichain.com` } as Receptionist));
+    return []; // Will be replaced by firestore
 }
 
 export const getPharmacists = (): Pharmacist[] => {
-    const pharmacists = getFromStorage(PHARMACISTS_KEY, initialPharmacists);
-    return pharmacists.map(p => ({ ...p, fullName: p.name, role: UserRole.Pharmacist, email: `${p.name?.split(' ').join('.').toLowerCase()}@medichain.com` } as Pharmacist));
+    return []; // Will be replaced by firestore
 }
-
-export const addStaff = (staffData: { fullName: string; email: string; role: UserRole; department?: string; }) => {
-    let newStaff: any;
-    switch (staffData.role) {
-        case UserRole.Doctor:
-            const doctors = getFromStorage<Omit<Doctor, 'role'>>(DOCTORS_KEY, initialDoctors);
-            newStaff = {
-                id: `doc${doctors.length + 1}`,
-                name: staffData.fullName,
-                department: staffData.department || 'General',
-            };
-            doctors.push(newStaff);
-            saveToStorage(DOCTORS_KEY, doctors);
-            return { ...newStaff, ...staffData };
-        case UserRole.Receptionist:
-            const receptionists = getFromStorage<Omit<Receptionist, 'role'>>(RECEPTIONISTS_KEY, initialReceptionists);
-            newStaff = {
-                id: `rec${receptionists.length + 1}`,
-                name: staffData.fullName,
-            };
-            receptionists.push(newStaff);
-            saveToStorage(RECEPTIONISTS_KEY, receptionists);
-            return { ...newStaff, ...staffData };
-        case UserRole.Pharmacist:
-             const pharmacists = getFromStorage<Omit<Pharmacist, 'role'>>(PHARMACISTS_KEY, initialPharmacists);
-             newStaff = {
-                id: `phar${pharmacists.length + 1}`,
-                name: staffData.fullName,
-            };
-            pharmacists.push(newStaff);
-            saveToStorage(PHARMACISTS_KEY, pharmacists);
-            return { ...newStaff, ...staffData };
-        default:
-            throw new Error("Invalid role");
-    }
-};
 
 // --- Other Mock Data (unchanged) ---
 
@@ -130,7 +41,7 @@ const initialPatients: Patient[] = [
 const initialAppointments: any[] = [
     { id: "APP001", patientId: "PAT001", patientName: "Alice Johnson", doctorId: "doc1", doctorName: "Dr. Evelyn Reed", date: new Date(new Date().setHours(10, 0, 0, 0)), reason: "Annual Checkup", status: "Scheduled" },
     { id: "APP002", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Samuel Green", date: new Date(new Date().setHours(10, 30, 0, 0)), reason: "Follow-up", status: "Scheduled" },
-    { id: "APP003", patientId: "PAT003", patientName: "Charlie Brown", doctorId: "doc3", doctorName: "Dr. Isabella White", date: new Date(new Date().setHours(11, 0, 0, 0)), reason: "Consultation", status: "Completed" },
+    { id: "APP003", patientId: "PAT003", patientName: "Charlie Brown", doctorId: "doc3", doctorName: "Dr. Isabella White", date: new Date(new Date().setHours(11, 0, 0, 0)), reason: "Completed" },
     { id: "APP004", patientId: "PAT004", patientName: "Diana Miller", doctorId: "doc1", doctorName: "Dr. Evelyn Reed", date: new Date(new Date().setHours(12, 15, 0, 0)), reason: "New Patient Visit", status: "Scheduled" },
     { id: "APP005", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Samuel Green", date: add(new Date(), {days: 1, hours: 14}), reason: "Test Results", status: "Scheduled" },
 ];
@@ -165,7 +76,7 @@ const initialMedicationOrders: MedicationOrder[] = [
 
 // In-memory data stores that are NOT persisted to localStorage
 let patients: Patient[] = [...initialPatients];
-let appointments: any[] = [...initialAppointments];
+// let appointments: any[] = [...initialAppointments];
 let suppliers: Supplier[] = [...initialSuppliers];
 let medicines: Medicine[] = [...initialMedicines];
 let prescriptions: Prescription[] = [...initialPrescriptions];
@@ -173,7 +84,7 @@ let medicationOrders: MedicationOrder[] = [...initialMedicationOrders];
 
 export const getAvailableBeds = () => availableBeds.filter(bed => !bed.isOccupied);
 export const getPatients = () => patients;
-export const getAppointments = () => appointments;
+export const getAppointments = () => []; // appointments;
 export const getSuppliers = () => suppliers;
 export const getMedicines = () => medicines;
 export const getPrescriptions = () => prescriptions;
@@ -194,20 +105,18 @@ export const registerPatient = (patientData: Omit<Patient, 'id'> & { bedId?: str
     return newPatient;
 };
 
-export const scheduleAppointment = (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'doctorName' | 'status' | 'createdAt'>) => {
+export const scheduleAppointment = async (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'doctorName' | 'status' | 'createdAt'>) => {
     const patient = patients.find(p => p.id === appointmentData.patientId);
-    const doctor = getDoctors().find(d => d.id === appointmentData.doctorId);
+    if (!patient) throw new Error("Patient not found");
 
-    if (!patient || !doctor) throw new Error("Patient or Doctor not found");
-
-    const newAppointment: any = {
+    const newAppointment = {
         ...appointmentData,
-        id: `APP${String(appointments.length + 1).padStart(3, '0')}`,
         patientName: patient.fullName,
-        doctorName: doctor.name,
         status: 'Scheduled',
+        createdAt: serverTimestamp(),
     };
-    appointments.push(newAppointment);
+    
+    await addDoc(collection(db, "appointments"), newAppointment);
     return newAppointment;
 };
 

@@ -9,15 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { addStaff } from "@/lib/data";
-import type { Doctor, Receptionist, Pharmacist } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@/lib/types";
-import { getDoctors, getPharmacists, getReceptionists } from "@/lib/data";
-import { useState, useEffect } from "react";
+import { useFirestore } from "@/hooks/use-firestore";
+import type { Doctor, Receptionist, Pharmacist } from "@/lib/types";
+import { auth, db } from "@/lib/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 
 const addStaffSchema = z.object({
@@ -40,24 +41,9 @@ const addStaffSchema = z.object({
 export default function StaffPage() {
     const { toast } = useToast();
     
-    // Initialize state with mock data
-    const [doctors, setDoctors] = useState<Partial<Doctor>[]>([]);
-    const [receptionists, setReceptionists] = useState<Partial<Receptionist>[]>([]);
-    const [pharmacists, setPharmacists] = useState<Partial<Pharmacist>[]>([]);
-
-    const updateStaffLists = () => {
-        setDoctors(getDoctors());
-        setReceptionists(getReceptionists());
-        setPharmacists(getPharmacists());
-    };
-
-    useEffect(() => {
-        updateStaffLists();
-    }, []);
-    
-    const loadingDoctors = false;
-    const loadingReceptionists = false;
-    const loadingPharmacists = false;
+    const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
+    const { data: receptionists, loading: loadingReceptionists } = useFirestore<Receptionist>('receptionists');
+    const { data: pharmacists, loading: loadingPharmacists } = useFirestore<Pharmacist>('pharmacists');
 
     const form = useForm<z.infer<typeof addStaffSchema>>({
         resolver: zodResolver(addStaffSchema),
@@ -75,19 +61,30 @@ export default function StaffPage() {
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
         try {
             if (values.role === UserRole.Admin) {
-                toast({
-                    variant: "destructive",
-                    title: "Invalid Role",
-                    description: "Cannot add an Admin from this form.",
-                });
+                toast({ variant: "destructive", title: "Cannot add an Admin role."});
                 return;
             }
 
-            // Use the mock data function to add the new staff member
-            addStaff(values);
+            // This is a temporary auth instance to create the user, then we sign out.
+            // In a real-world scenario, you might use a server-side admin SDK for this.
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+            const user = userCredential.user;
 
-            // Update the local state to reflect the change
-            updateStaffLists();
+            const collectionName = `${values.role.toLowerCase()}s`;
+            
+            const staffData: any = {
+                uid: user.uid,
+                fullName: values.fullName,
+                email: values.email,
+                role: values.role,
+                createdAt: serverTimestamp()
+            };
+
+            if (values.role === UserRole.Doctor) {
+                staffData.department = values.department;
+            }
+
+            await addDoc(collection(db, collectionName), staffData);
             
             toast({
                 title: "Staff Member Added",
@@ -222,7 +219,7 @@ export default function StaffPage() {
                                     ))
                                 ) : doctors.map((doctor) => (
                                     <TableRow key={doctor.id}>
-                                        <TableCell className="font-medium">{doctor.name || doctor.fullName}</TableCell>
+                                        <TableCell className="font-medium">{doctor.fullName}</TableCell>
                                         <TableCell>{doctor.role}</TableCell>
                                         <TableCell>{doctor.department}</TableCell>
                                         <TableCell>{doctor.email}</TableCell>
@@ -237,7 +234,7 @@ export default function StaffPage() {
                                     </TableRow>
                                 ) : receptionists.map((rec) => (
                                     <TableRow key={rec.id}>
-                                        <TableCell className="font-medium">{rec.name || rec.fullName}</TableCell>
+                                        <TableCell className="font-medium">{rec.fullName}</TableCell>
                                         <TableCell>{rec.role}</TableCell>
                                         <TableCell>N/A</TableCell>
                                         <TableCell>{rec.email}</TableCell>
@@ -252,7 +249,7 @@ export default function StaffPage() {
                                     </TableRow>
                                 ) : pharmacists.map((phar) => (
                                     <TableRow key={phar.id}>
-                                        <TableCell className="font-medium">{phar.name || phar.fullName}</TableCell>
+                                        <TableCell className="font-medium">{phar.fullName}</TableCell>
                                         <TableCell>{phar.role}</TableCell>
                                         <TableCell>N/A</TableCell>
                                         <TableCell>{phar.email}</TableCell>

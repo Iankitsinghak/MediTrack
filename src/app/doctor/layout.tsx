@@ -22,13 +22,37 @@ import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { getDoctors } from "@/lib/data"
+import { useFirestore } from "@/hooks/use-firestore"
+import type { Doctor } from "@/lib/types"
+import { doc, getDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { useEffect, useState } from "react"
 
 function DoctorHeader() {
   const searchParams = useSearchParams()
   const doctorId = searchParams.get('doctorId')
-  const doctors = getDoctors()
-  const doctor = doctors.find(d => d.id === doctorId) || doctors[0]
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+
+  useEffect(() => {
+    if (doctorId) {
+      const fetchDoctor = async () => {
+        const docRef = doc(db, "doctors", doctorId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setDoctor({ id: docSnap.id, ...docSnap.data() } as Doctor);
+        }
+      }
+      fetchDoctor();
+    }
+  }, [doctorId]);
+
+  if (!doctor) {
+    return (
+       <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+        {/* Skeleton or loading state */}
+      </header>
+    )
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
@@ -49,13 +73,13 @@ function DoctorHeader() {
             className="overflow-hidden rounded-full"
           >
             <Avatar>
-              <AvatarImage src={`https://picsum.photos/seed/${doctor.id}/40/40`} alt={`${doctor.name} avatar`} />
-              <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={`https://picsum.photos/seed/${doctor.id}/40/40`} alt={`${doctor.fullName} avatar`} />
+              <AvatarFallback>{doctor.fullName?.charAt(0)}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{doctor.name}</DropdownMenuLabel>
+          <DropdownMenuLabel>{doctor.fullName}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>
