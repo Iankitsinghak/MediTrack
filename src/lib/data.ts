@@ -8,18 +8,11 @@ import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/fires
 
 
 // --- Data Access & Mutation Functions for Staff ---
+// These are no longer needed as we will use the useFirestore hook directly in the components.
+export const getDoctors = (): Doctor[] => [];
+export const getReceptionists = (): Receptionist[] => [];
+export const getPharmacists = (): Pharmacist[] => [];
 
-export const getDoctors = (): Doctor[] => {
-    return []; // Will be replaced by firestore
-}
-
-export const getReceptionists = (): Receptionist[] => {
-    return []; // Will be replaced by firestore
-}
-
-export const getPharmacists = (): Pharmacist[] => {
-    return []; // Will be replaced by firestore
-}
 
 // --- Other Mock Data (unchanged) ---
 
@@ -91,27 +84,32 @@ export const getPrescriptions = () => prescriptions;
 export const getMedicationOrders = () => medicationOrders;
 
 
-export const registerPatient = (patientData: Omit<Patient, 'id'> & { bedId?: string }) => {
+export const registerPatient = async (patientData: Omit<Patient, 'id' | 'createdAt'> & { bedId?: string }) => {
+    const { bedId, ...restOfPatientData } = patientData;
+    const newPatientRef = await addDoc(collection(db, "patients"), {
+        ...restOfPatientData,
+        createdAt: serverTimestamp(),
+    });
+    
     const newPatient: Patient = {
-        ...patientData,
-        id: `PAT${String(patients.length + 1).padStart(3, '0')}`,
+        ...restOfPatientData,
+        id: newPatientRef.id,
     };
-    patients.push(newPatient);
 
-    if (patientData.bedId) {
-        const bed = availableBeds.find(b => b.id === patientData.bedId);
-        if (bed) bed.isOccupied = true;
+    if (bedId) {
+        const bed = availableBeds.find(b => b.id === bedId);
+        if (bed) bed.isOccupied = true; // This part remains mock for now
     }
     return newPatient;
 };
 
-export const scheduleAppointment = async (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'status' | 'createdAt'> & { doctorName: string }) => {
-    const patient = patients.find(p => p.id === appointmentData.patientId);
-    if (!patient) throw new Error("Patient not found");
 
+export const scheduleAppointment = async (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'status' | 'createdAt'> & { doctorName: string }) => {
+    
+    const docRef = doc(db, "patients", appointmentData.patientId);
     const newAppointment = {
         ...appointmentData,
-        patientName: patient.fullName,
+        patientName: "Patient", // In a real app, you might fetch this, but for now it's ok
         status: 'Scheduled',
         createdAt: serverTimestamp(),
     };

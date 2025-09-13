@@ -9,7 +9,6 @@ export enum UserRole {
 export interface BaseUser {
   id: string; // This is the Firestore document ID or mock ID
   uid?: string; // This would be the Firebase Auth UID
-  name?: string; // name is used for mock data
   fullName?: string; // fullName is used for firestore data
   email: string;
   role: UserRole;

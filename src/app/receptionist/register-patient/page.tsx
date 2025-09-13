@@ -1,3 +1,4 @@
+
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -35,7 +36,9 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { getDoctors, getAvailableBeds, registerPatient, scheduleAppointment } from "@/lib/data"
+import { getAvailableBeds, registerPatient, scheduleAppointment } from "@/lib/data"
+import { useFirestore } from "@/hooks/use-firestore"
+import type { Doctor } from "@/lib/types"
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
@@ -60,7 +63,7 @@ const formSchema = z.object({
 export default function RegisterPatientPage() {
     const router = useRouter();
     const { toast } = useToast();
-    const doctors = getDoctors();
+    const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
     const availableBeds = getAvailableBeds();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -78,10 +81,16 @@ export default function RegisterPatientPage() {
 
     const needsBed = form.watch("needsBed");
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
+    async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
+            const selectedDoctor = doctors.find(d => d.id === values.doctorId);
+            if (!selectedDoctor) {
+                 toast({ variant: "destructive", title: "Doctor not found" });
+                 return;
+            }
+
             // 1. Register the patient
-            const newPatient = registerPatient({
+            const newPatient = await registerPatient({
                 fullName: values.fullName,
                 dateOfBirth: format(values.dateOfBirth, "yyyy-MM-dd"),
                 gender: values.gender,
@@ -94,9 +103,10 @@ export default function RegisterPatientPage() {
             const appointmentDateTime = new Date(values.appointmentDate);
             appointmentDateTime.setHours(hours, minutes);
 
-            scheduleAppointment({
+            await scheduleAppointment({
                 patientId: newPatient.id,
                 doctorId: values.doctorId,
+                doctorName: selectedDoctor.fullName!,
                 date: appointmentDateTime,
                 reason: values.reason,
             });
@@ -221,12 +231,12 @@ export default function RegisterPatientPage() {
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Select a doctor" />
+                                                        <SelectValue placeholder={loadingDoctors ? "Loading..." : "Select a doctor"} />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
                                                     {doctors.map(doc => (
-                                                        <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
+                                                        <SelectItem key={doc.id} value={doc.id!}>{doc.fullName}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
