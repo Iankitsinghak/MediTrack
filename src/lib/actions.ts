@@ -1,9 +1,10 @@
+
 "use server"
 
 import { summarizeConsultationNotes, SummarizeConsultationNotesOutput } from "@/ai/flows/summarize-patient-consultation-notes"
-import { auth, db } from "@/lib/firebase-admin";
+import { auth } from "@/lib/firebase-admin";
 import { UserRole } from "./types";
-import { setDoc, doc, serverTimestamp, collection } from "firebase/firestore";
+import { serverTimestamp } from "firebase/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 
 export interface FormState {
@@ -50,16 +51,17 @@ interface AddStaffValues {
 export async function handleAddStaff(values: AddStaffValues): Promise<{ error?: string }> {
     const { email, password, fullName, role, department } = values;
     
-    // This server action requires elevated privileges, which we get from the admin-sdk
+    if (!password) {
+        return { error: "Password is required." };
+    }
+
     try {
-        // Create user in Firebase Auth
         const userRecord = await auth.createUser({
             email,
             password,
             displayName: fullName,
         });
 
-        // Prepare user profile data for Firestore
         const userProfile: any = {
             uid: userRecord.uid,
             fullName,
@@ -71,16 +73,9 @@ export async function handleAddStaff(values: AddStaffValues): Promise<{ error?: 
         if (role === UserRole.Doctor && department) {
             userProfile.department = department;
         }
-
-        // Save user profile to the correct Firestore collection
-        const collectionName = `${role.toLowerCase()}s`;
         
-        // We need to use the client 'db' object from 'firebase/firestore' for setDoc with serverTimestamp
-        // This is a bit of a workaround due to how server actions and client SDKs interact.
-        // A full solution might involve a dedicated API route.
-        // For our purpose, we'll use the admin SDK's firestore instance.
         const firestore = getFirestore();
-        await firestore.collection(collectionName).doc(userRecord.uid).set(userProfile);
+        await firestore.collection(`${role.toLowerCase()}s`).doc(userRecord.uid).set(userProfile);
 
         return {};
     } catch (error: any) {

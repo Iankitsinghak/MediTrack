@@ -31,14 +31,15 @@ export function AdminSignupForm() {
 
     async function onSubmit(values: z.infer<typeof adminSignupSchema>) {
         
-        // Ensure this is the first admin
+        // Ensure this is the first admin being created via this form.
+        // Google Sign-In might create the first admin too.
         const adminsCollection = collection(db, 'admins');
         const adminsSnapshot = await getDocs(adminsCollection);
-        if (!adminsSnapshot.empty) {
-            toast({
+        if (adminsSnapshot.docs.some(doc => doc.data().email === values.email)) {
+             toast({
                 variant: "destructive",
-                title: "Signup Forbidden",
-                description: "An administrator account already exists. Please log in.",
+                title: "Signup Error",
+                description: "This email is already registered as an admin.",
             });
             return;
         }
