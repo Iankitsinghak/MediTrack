@@ -19,9 +19,18 @@ import { getDoc, doc } from "firebase/firestore"
 
 const loginSchema = z.object({
   role: z.nativeEnum(UserRole),
-  staffId: z.string().min(1, "Please select your name."),
+  email: z.string().optional(), // Admin will use email
+  staffId: z.string().optional(), // Other roles will use staffId
   password: z.string().min(6, "Password must be at least 6 characters."),
-})
+}).refine(data => {
+    if (data.role === UserRole.Admin) {
+        return !!data.email && z.string().email().safeParse(data.email).success;
+    }
+    return !!data.staffId;
+}, {
+    message: "A valid selection or email is required.",
+    path: ["email"], // Arbitrarily point to one, the form will handle showing the right message
+});
 
 export function EmailLoginForm() {
   const router = useRouter()
@@ -52,6 +61,7 @@ export function EmailLoginForm() {
     setSelectedRole(role);
     form.setValue("role", role);
     form.resetField("staffId");
+    form.resetField("email");
   };
 
   const handleStaffChange = (value: string) => {
@@ -59,19 +69,34 @@ export function EmailLoginForm() {
   };
   
   async function onSubmit(values: z.infer<typeof loginSchema>) {
-    const staffList = roleToStaffList[values.role].data;
-    const selectedStaff = staffList.find(s => s.id === values.staffId);
+    let emailToLogin: string | undefined;
+    let userFullName: string | undefined;
 
-    if (!selectedStaff || !selectedStaff.email) {
-      toast({ variant: "destructive", title: "Login Error", description: "Could not find selected staff member's email." });
-      return;
+    if (values.role === UserRole.Admin) {
+        emailToLogin = values.email;
+        // In a real app, you might fetch the admin's name, but email is enough for login
+        userFullName = "Admin";
+    } else if (values.staffId) {
+        const staffList = roleToStaffList[values.role].data;
+        const selectedStaff = staffList.find(s => s.id === values.staffId);
+        if (!selectedStaff || !selectedStaff.email) {
+          toast({ variant: "destructive", title: "Login Error", description: "Could not find selected staff member's email." });
+          return;
+        }
+        emailToLogin = selectedStaff.email;
+        userFullName = selectedStaff.fullName;
+    }
+
+    if (!emailToLogin) {
+         toast({ variant: "destructive", title: "Login Error", description: "No valid user selected or email provided." });
+         return;
     }
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, selectedStaff.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, values.password);
       const user = userCredential.user;
 
-      toast({ title: "Login Successful", description: `Welcome back, ${selectedStaff.fullName}!` });
+      toast({ title: "Login Successful", description: `Welcome back, ${userFullName}!` });
       
       const userRoleDoc = await getDoc(doc(db, `${values.role.toLowerCase()}s`, user.uid));
       if (!userRoleDoc.exists()) {
@@ -124,7 +149,21 @@ export function EmailLoginForm() {
           )}
         />
 
-        {selectedRole && (
+        {selectedRole && selectedRole === UserRole.Admin && (
+          <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Admin Email</FormLabel>
+                      <FormControl><Input type="email" placeholder="admin@medichain.com" {...field} /></FormControl>
+                      <FormMessage />
+                  </FormItem>
+              )}
+          />
+        )}
+
+        {selectedRole && selectedRole !== UserRole.Admin && (
           <FormField
             control={form.control}
             name="staffId"
@@ -149,7 +188,7 @@ export function EmailLoginForm() {
           />
         )}
         
-        {form.watch("staffId") && (
+        {selectedRole && (
             <FormField
                 control={form.control}
                 name="password"
