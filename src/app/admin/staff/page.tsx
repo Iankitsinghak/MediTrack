@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UserPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@/lib/types";
+import { getDoctors, getPharmacists, getReceptionists } from "@/lib/data";
 
 
 const addStaffSchema = z.object({
@@ -39,9 +40,13 @@ const addStaffSchema = z.object({
 
 export default function StaffPage() {
     const { toast } = useToast();
-    const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
-    const { data: receptionists, loading: loadingReceptionists } = useFirestore<Receptionist>('receptionists');
-    const { data: pharmacists, loading: loadingPharmacists } = useFirestore<Pharmacist>('pharmacists');
+    // Use mock data for the list
+    const doctors: Partial<Doctor>[] = getDoctors();
+    const receptionists: Partial<Receptionist>[] = getReceptionists();
+    const pharmacists: Partial<Pharmacist>[] = getPharmacists();
+    const loadingDoctors = false;
+    const loadingReceptionists = false;
+    const loadingPharmacists = false;
 
     const form = useForm<z.infer<typeof addStaffSchema>>({
         resolver: zodResolver(addStaffSchema),
@@ -58,7 +63,8 @@ export default function StaffPage() {
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
         try {
-            // Prevent adding Admin role via this form
+            // This part still writes to Firestore, so new staff will be saved.
+            // However, they won't appear in the list unless you refresh or switch to full Firestore fetching.
             if (values.role === UserRole.Admin) {
                 toast({
                     variant: "destructive",
@@ -73,9 +79,7 @@ export default function StaffPage() {
             const staffData: any = {
                 fullName: values.fullName,
                 email: values.email,
-                // In a real app, you would hash this password before storing it,
-                // and likely use Firebase Auth to create a user.
-                password: values.password,
+                password: values.password, // In a real app, you would hash this
                 role: values.role,
                 createdAt: serverTimestamp(),
             };
@@ -88,7 +92,7 @@ export default function StaffPage() {
             
             toast({
                 title: "Staff Member Added",
-                description: `${values.fullName} has been added as a ${values.role}.`,
+                description: `${values.fullName} has been added to the system. Note: This list shows mock data.`,
             });
             form.reset();
         } catch (error) {
@@ -219,7 +223,7 @@ export default function StaffPage() {
                                     ))
                                 ) : doctors.map((doctor) => (
                                     <TableRow key={doctor.id}>
-                                        <TableCell className="font-medium">{doctor.fullName}</TableCell>
+                                        <TableCell className="font-medium">{doctor.name || doctor.fullName}</TableCell>
                                         <TableCell>{doctor.role}</TableCell>
                                         <TableCell>{doctor.department}</TableCell>
                                         <TableCell>{doctor.email}</TableCell>
@@ -234,7 +238,7 @@ export default function StaffPage() {
                                     </TableRow>
                                 ) : receptionists.map((rec) => (
                                     <TableRow key={rec.id}>
-                                        <TableCell className="font-medium">{rec.fullName}</TableCell>
+                                        <TableCell className="font-medium">{rec.name || rec.fullName}</TableCell>
                                         <TableCell>{rec.role}</TableCell>
                                         <TableCell>N/A</TableCell>
                                         <TableCell>{rec.email}</TableCell>
@@ -249,7 +253,7 @@ export default function StaffPage() {
                                     </TableRow>
                                 ) : pharmacists.map((phar) => (
                                     <TableRow key={phar.id}>
-                                        <TableCell className="font-medium">{phar.fullName}</TableCell>
+                                        <TableCell className="font-medium">{phar.name || phar.fullName}</TableCell>
                                         <TableCell>{phar.role}</TableCell>
                                         <TableCell>N/A</TableCell>
                                         <TableCell>{phar.email}</TableCell>
