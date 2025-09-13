@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -30,28 +30,41 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const router = useRouter()
-  // Using mock data for the login selection
-  const doctors = getDoctors();
-  const receptionists = getReceptionists();
-  const pharmacists = getPharmacists();
+  
+  const [doctors, setDoctors] = useState<Partial<Doctor>[]>([])
+  const [receptionists, setReceptionists] = useState<Partial<Receptionist>[]>([])
+  const [pharmacists, setPharmacists] = useState<Partial<Pharmacist>[]>([])
+
+  useEffect(() => {
+    setDoctors(getDoctors())
+    setReceptionists(getReceptionists())
+    setPharmacists(getPharmacists())
+  }, [])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "staff@medichain.com", // Pre-filled for demo purposes
-      password: "password123", // Pre-filled for demo purposes
+      email: "staff@medichain.com", 
+      password: "password123", 
       role: UserRole.Doctor,
     },
   })
 
   const role = form.watch("role")
 
+  // When role changes, refetch the data to ensure it's up-to-date
+  useEffect(() => {
+    setDoctors(getDoctors())
+    setReceptionists(getReceptionists())
+    setPharmacists(getPharmacists())
+  }, [role])
+
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values)
     let dashboardPath = `/${values.role.toLowerCase()}/dashboard`
 
     if (values.role === UserRole.Admin) {
-        // Admin login is simplified for the demo
         router.push(dashboardPath);
         return;
     }
@@ -73,7 +86,6 @@ export function LoginForm() {
   }
   
   function onGoogleSignIn() {
-    // In a real app, you'd call Firebase Google OAuth provider here
     router.push(`/admin/dashboard`)
   }
 
@@ -152,8 +164,7 @@ export function LoginForm() {
                     </FormControl>
                     <SelectContent>
                       {currentStaff.data?.map(staff => (
-                        // @ts-ignore - name/fullName is handled by the data source
-                        <SelectItem key={staff.id} value={staff.id}>{staff.name || staff.fullName}</SelectItem>
+                        <SelectItem key={staff.id} value={staff.id!}>{staff.name || staff.fullName}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

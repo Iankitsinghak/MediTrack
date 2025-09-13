@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useFirestore } from "@/hooks/use-firestore"
-import type { Doctor, Appointment } from "@/lib/types"
+import type { Doctor, Appointment, Patient } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 
 const appointmentSchema = z.object({
@@ -30,18 +30,21 @@ type AppointmentWithDate = Omit<Appointment, 'date'> & { date: Date | any }
 
 export default function AppointmentsPage() {
     const { toast } = useToast();
-    const allPatients = getPatients();
-    const doctors = getDoctors();
-
-    // Still fetch appointments from Firestore for real-time updates
-    const { data: appointments, loading: loadingAppointments } = useFirestore<AppointmentWithDate>('appointments');
+    
+    // State for local mock data
+    const [allPatients, setAllPatients] = useState<Patient[]>([]);
+    const [doctors, setDoctors] = useState<Partial<Doctor>[]>([]);
     const [localAppointments, setLocalAppointments] = useState<Appointment[]>([]);
 
     useEffect(() => {
-        setLocalAppointments(appointments as Appointment[]);
-    }, [appointments]);
+        setAllPatients(getPatients());
+        setDoctors(getDoctors());
+        setLocalAppointments(getAppointments());
+    }, []);
 
-
+    // Still fetch appointments from Firestore for real-time updates (can be removed if only mock is desired)
+    const { data: firestoreAppointments, loading: loadingAppointments } = useFirestore<AppointmentWithDate>('appointments');
+    
     const [date, setDate] = useState<Date | undefined>(new Date())
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -52,18 +55,31 @@ export default function AppointmentsPage() {
             appointmentTime: "09:00",
         }
     });
+    
+    // When the modal opens, refetch doctors to get the latest list
+    useEffect(() => {
+        if(isModalOpen) {
+            setDoctors(getDoctors());
+        }
+    }, [isModalOpen])
+
 
     const appointmentsForSelectedDate = useMemo(() => {
         if (!date) return [];
-        const filteredFromFirestore = appointments.filter(appt => {
-            const apptDate = appt.date.toDate();
+        const combinedAppointments = [...localAppointments, ...firestoreAppointments as Appointment[]];
+        const uniqueAppointments = Array.from(new Map(combinedAppointments.map(item => [item.id, item])).values());
+        
+        const filtered = uniqueAppointments.filter(appt => {
+            const apptDate = appt.date.toDate ? appt.date.toDate() : new Date(appt.date);
             return startOfDay(apptDate).getTime() === startOfDay(date).getTime()
         });
-
-        const allAppointments = [...filteredFromFirestore];
-
-        return allAppointments.sort((a, b) => a.date.toDate().getTime() - b.date.toDate().getTime());
-    }, [date, appointments]);
+        
+        return filtered.sort((a, b) => {
+             const dateA = a.date.toDate ? a.date.toDate() : new Date(a.date);
+             const dateB = b.date.toDate ? b.date.toDate() : new Date(b.date);
+             return dateA.getTime() - dateB.getTime()
+        });
+    }, [date, localAppointments, firestoreAppointments]);
     
     const handleDateSelect = (selectedDate: Date | undefined) => {
         setDate(selectedDate);
@@ -83,7 +99,6 @@ export default function AppointmentsPage() {
         appointmentDateTime.setHours(hours, minutes);
 
         try {
-            // Using the mock function to add the appointment
             const newAppointment = scheduleAppointment({
                 patientId: values.patientId,
                 doctorId: values.doctorId,
@@ -91,8 +106,7 @@ export default function AppointmentsPage() {
                 reason: values.reason,
             });
 
-            // Optimistically update the local state
-            setLocalAppointments(prev => [...prev, newAppointment]);
+            setLocalAppointments(getAppointments());
             
             toast({
                 title: "Appointment Scheduled",
@@ -152,7 +166,7 @@ export default function AppointmentsPage() {
                                         <p className="text-sm text-muted-foreground">{appt.reason}</p>
                                     </div>
                                     <div className="ml-auto text-right">
-                                        <p className="font-medium">{format(appt.date.toDate ? appt.date.toDate() : appt.date, "p")}</p>
+                                        <p className="font-medium">{format(appt.date.toDate ? appt.date.toDate() : new Date(appt.date), "p")}</p>
                                         <p className="text-sm text-muted-foreground">{appt.doctorName}</p>
                                     </div>
                                 </div>
@@ -208,7 +222,7 @@ export default function AppointmentsPage() {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                                                    {doctors.map(d => <SelectItem key={d.id} value={d.id!}>{d.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
