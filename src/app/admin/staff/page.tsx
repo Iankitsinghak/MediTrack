@@ -91,7 +91,6 @@ export default function StaffPage() {
         }
     }
 
-
     return (
         <div className="flex-1 space-y-4">
             <h1 className="text-3xl font-bold tracking-tight font-headline">Manage Staff</h1>
@@ -254,3 +253,10 @@ export default function StaffPage() {
                                     </TableRow>
                                 )}
                             </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
