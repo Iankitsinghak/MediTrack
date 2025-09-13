@@ -1,8 +1,8 @@
 // In a real application, this would be a database connection.
 // For this prototype, we're using in-memory data to simulate a backend.
 
-import { Appointment, Patient, UserRole } from "./types";
-import { add, format } from "date-fns";
+import { Appointment, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder } from "./types";
+import { add, format, subDays } from "date-fns";
 
 const doctors = [
   { id: "doc1", name: "Dr. Smith", department: "Cardiology" },
@@ -33,26 +33,54 @@ const initialAppointments: Appointment[] = [
     { id: "APP005", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Evans", date: add(new Date(), {days: 1, hours: 14}), reason: "Test Results", status: "Scheduled" },
 ];
 
+const initialSuppliers: Supplier[] = [
+    { id: "SUP001", name: "Pharma Inc.", contactPerson: "John Doe", phone: "123-456-7890" },
+    { id: "SUP002", name: "MediSource", contactPerson: "Jane Smith", phone: "098-765-4321" },
+    { id: "SUP003", name: "HealthWell", contactPerson: "Peter Jones", phone: "555-555-5555" },
+    { id: "SUP004", name: "Global Meds", contactPerson: "Mary Williams", phone: "111-222-3333" },
+];
+
+const initialMedicines: Medicine[] = [
+  { id: "MED001", name: "Paracetamol 500mg", stock: 1500, lowStockThreshold: 500, supplierId: "SUP001" },
+  { id: "MED002", name: "Amoxicillin 250mg", stock: 45, lowStockThreshold: 50, supplierId: "SUP002" },
+  { id: "MED003", name: "Ibuprofen 200mg", stock: 800, lowStockThreshold: 200, supplierId: "SUP003" },
+  { id: "MED004", name: "Ciprofloxacin 500mg", stock: 15, lowStockThreshold: 20, supplierId: "SUP004" },
+  { id: "MED005", name: "Metformin 1000mg", stock: 350, lowStockThreshold: 100, supplierId: "SUP001" },
+  { id: "MED006", name: "Aspirin 81mg", stock: 2500, lowStockThreshold: 1000, supplierId: "SUP003" },
+];
+
+const initialPrescriptions: Prescription[] = [
+    { id: "PRE001", patientName: "Alice Johnson", doctorName: "Dr. Smith", medication: "Metformin 1000mg", dosage: "1 tablet daily", date: subDays(new Date(), 1), status: "Pending" },
+    { id: "PRE002", patientName: "Bob Williams", doctorName: "Dr. Evans", medication: "Amoxicillin 250mg", dosage: "1 capsule every 8 hours", date: new Date(), status: "Pending" },
+    { id: "PRE003", patientName: "Diana Miller", doctorName: "Dr. Smith", medication: "Ibuprofen 200mg", dosage: "2 tablets as needed for pain", date: subDays(new Date(), 2), status: "Processed" },
+];
+
+const initialMedicationOrders: MedicationOrder[] = [
+    { id: "ORD001", medicineName: "Paracetamol 500mg", quantity: 1000, supplierName: "Pharma Inc.", orderDate: subDays(new Date(), 7), status: "Received" },
+    { id: "ORD002", medicineName: "Amoxicillin 250mg", quantity: 200, supplierName: "MediSource", orderDate: subDays(new Date(), 2), status: "Pending" },
+];
+
+
+// In-memory data stores
 let patients: Patient[] = [...initialPatients];
 let appointments: Appointment[] = [...initialAppointments];
+let suppliers: Supplier[] = [...initialSuppliers];
+let medicines: Medicine[] = [...initialMedicines];
+let prescriptions: Prescription[] = [...initialPrescriptions];
+let medicationOrders: MedicationOrder[] = [...initialMedicationOrders];
 
-// --- Data Access Functions ---
 
-export const getDoctors = () => {
-    return doctors;
-}
+// --- Data Access & Mutation Functions ---
 
-export const getAvailableBeds = () => {
-    return availableBeds.filter(bed => !bed.isOccupied);
-}
+export const getDoctors = () => doctors;
+export const getAvailableBeds = () => availableBeds.filter(bed => !bed.isOccupied);
+export const getPatients = () => patients;
+export const getAppointments = () => appointments;
+export const getSuppliers = () => suppliers;
+export const getMedicines = () => medicines;
+export const getPrescriptions = () => prescriptions;
+export const getMedicationOrders = () => medicationOrders;
 
-export const getPatients = () => {
-    return patients;
-}
-
-export const getAppointments = () => {
-    return appointments;
-}
 
 export const registerPatient = (patientData: Omit<Patient, 'id'> & { bedId?: string }) => {
     const newPatient: Patient = {
@@ -63,20 +91,16 @@ export const registerPatient = (patientData: Omit<Patient, 'id'> & { bedId?: str
 
     if (patientData.bedId) {
         const bed = availableBeds.find(b => b.id === patientData.bedId);
-        if (bed) {
-            bed.isOccupied = true;
-        }
+        if (bed) bed.isOccupied = true;
     }
     return newPatient;
-}
+};
 
 export const scheduleAppointment = (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'doctorName' | 'status'>) => {
     const patient = patients.find(p => p.id === appointmentData.patientId);
     const doctor = doctors.find(d => d.id === appointmentData.doctorId);
 
-    if (!patient || !doctor) {
-        throw new Error("Patient or Doctor not found");
-    }
+    if (!patient || !doctor) throw new Error("Patient or Doctor not found");
 
     const newAppointment: Appointment = {
         ...appointmentData,
@@ -87,4 +111,32 @@ export const scheduleAppointment = (appointmentData: Omit<Appointment, 'id' | 'p
     };
     appointments.push(newAppointment);
     return newAppointment;
-}
+};
+
+export const addSupplier = (supplierData: Omit<Supplier, 'id'>) => {
+    const newSupplier: Supplier = {
+        ...supplierData,
+        id: `SUP${String(suppliers.length + 1).padStart(3, '0')}`,
+    };
+    suppliers.push(newSupplier);
+    return newSupplier;
+};
+
+export const createMedicationOrder = (orderData: Omit<MedicationOrder, 'id' | 'status' | 'orderDate'>) => {
+    const newOrder: MedicationOrder = {
+        ...orderData,
+        id: `ORD${String(medicationOrders.length + 1).padStart(3, '0')}`,
+        orderDate: new Date(),
+        status: 'Pending',
+    };
+    medicationOrders.push(newOrder);
+    return newOrder;
+};
+
+export const processPrescription = (prescriptionId: string) => {
+    const prescription = prescriptions.find(p => p.id === prescriptionId);
+    if (prescription) {
+        prescription.status = 'Processed';
+    }
+    return prescription;
+};

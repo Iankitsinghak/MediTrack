@@ -37,7 +37,33 @@ export interface Medicine {
   name: string;
   stock: number;
   lowStockThreshold: number;
-  supplier: string;
+  supplierId: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contactPerson: string;
+  phone: string;
+}
+
+export interface Prescription {
+    id: string;
+    patientName: string;
+    doctorName: string;
+    medication: string;
+    dosage: string;
+    date: Date;
+    status: 'Pending' | 'Processed';
+}
+
+export interface MedicationOrder {
+    id: string;
+    medicineName: string;
+    quantity: number;
+    supplierName: string;
+    orderDate: Date;
+    status: 'Pending' | 'Received';
 }
 
 export interface StatCardData {
