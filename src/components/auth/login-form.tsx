@@ -11,10 +11,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { signInWithEmailAndPassword } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { auth, db } from "@/lib/firebase"
 import { UserRole } from "@/lib/types"
 import { useFirestore } from "@/hooks/use-firestore"
 import type { BaseUser } from "@/lib/types"
+import { getDoc, doc } from "firebase/firestore"
 
 const loginSchema = z.object({
   role: z.nativeEnum(UserRole),
@@ -72,18 +73,24 @@ export function EmailLoginForm() {
 
       toast({ title: "Login Successful", description: `Welcome back, ${selectedStaff.fullName}!` });
       
-      let dashboardPath = `/${values.role.toLowerCase()}/dashboard`;
-      if (values.role === UserRole.Doctor) {
+      const userRoleDoc = await getDoc(doc(db, `${values.role.toLowerCase()}s`, user.uid));
+      if (!userRoleDoc.exists()) {
+        throw new Error("User role not found in database.");
+      }
+      const userData = userRoleDoc.data() as BaseUser;
+
+      let dashboardPath = `/${userData.role.toLowerCase()}/dashboard`;
+      if (userData.role === UserRole.Doctor) {
         dashboardPath += `?doctorId=${user.uid}`;
       }
       router.push(dashboardPath);
       router.refresh();
 
-    } catch (error: any) => {
+    } catch (error: any) {
       console.error("Login Error:", error);
       let errorMessage = "An unexpected error occurred. Please try again.";
       if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        errorMessage = "Invalid credentials. Please check your password and try again.";
+        errorMessage = "Invalid credentials. Please check your selections and password and try again.";
       }
       toast({
         variant: "destructive",
@@ -124,7 +131,7 @@ export function EmailLoginForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Your Name</FormLabel>
-                <Select onValueChange={handleStaffChange} defaultValue={field.value}>
+                <Select onValueChange={handleStaffChange} value={field.value} defaultValue="">
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={roleToStaffList[selectedRole].loading ? "Loading..." : "Select your name"} />
@@ -132,7 +139,7 @@ export function EmailLoginForm() {
                   </FormControl>
                   <SelectContent>
                     {roleToStaffList[selectedRole].data.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.fullName}</SelectItem>
+                      <SelectItem key={s.id} value={s.id!}>{s.fullName}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
