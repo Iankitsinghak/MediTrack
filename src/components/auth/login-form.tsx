@@ -5,9 +5,10 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
 import { signInWithEmailAndPassword } from "firebase/auth"
-import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore"
+import { doc, getDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { useToast } from "@/hooks/use-toast"
+import { useState, useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -19,77 +20,83 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { UserRole } from "@/lib/types"
+import { UserRole, type Doctor, type Pharmacist, type Receptionist } from "@/lib/types"
+import { useFirestore } from "@/hooks/use-firestore"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { seedDatabase } from "@/lib/seed"
 
+
 const formSchema = z.object({
-  email: z.string().email({ message: "Invalid email address." }),
+  role: z.nativeEnum(UserRole),
+  staffId: z.string({ required_error: "Please select your name." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 })
 
-async function getUserRoleByUid(uid: string): Promise<{ role: UserRole; id: string } | null> {
-  const collections: { name: string; role: UserRole }[] = [
-    { name: 'admins', role: UserRole.Admin },
-    { name: 'doctors', role: UserRole.Doctor },
-    { name: 'receptionists', role: UserRole.Receptionist },
-    { name: 'pharmacists', role: UserRole.Pharmacist },
-  ];
-
-  for (const { name, role } of collections) {
-    const docRef = doc(db, name, uid);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { role, id: docSnap.id };
-    }
-  }
-
-  return null;
-}
-
+type StaffMember = (Doctor | Receptionist | Pharmacist) & { email: string };
 
 export function LoginForm() {
   const router = useRouter()
   const { toast } = useToast()
+  
+  const { data: doctors } = useFirestore<Doctor>('doctors');
+  const { data: receptionists } = useFirestore<Receptionist>('receptionists');
+  const { data: pharmacists } = useFirestore<Pharmacist>('pharmacists');
+  const { data: admins } = useFirestore<any>('admins');
+
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
       password: "",
     },
   })
 
+  const selectedRole = form.watch("role");
+
+  useEffect(() => {
+    let currentList: StaffMember[] = [];
+    if (selectedRole === UserRole.Doctor) {
+      currentList = doctors as StaffMember[];
+    } else if (selectedRole === UserRole.Receptionist) {
+      currentList = receptionists as StaffMember[];
+    } else if (selectedRole === UserRole.Pharmacist) {
+      currentList = pharmacists as StaffMember[];
+    } else if (selectedRole === UserRole.Admin) {
+      currentList = admins as StaffMember[];
+    }
+    setStaffList(currentList);
+    form.setValue("staffId", ""); // Reset staff selection when role changes
+  }, [selectedRole, doctors, receptionists, pharmacists, admins, form]);
+
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-      const user = userCredential.user;
+        const selectedStaff = staffList.find(staff => staff.id === values.staffId);
+        if (!selectedStaff || !selectedStaff.email) {
+            throw new Error("Could not find email for the selected staff member.");
+        }
+        
+        const userCredential = await signInWithEmailAndPassword(auth, selectedStaff.email, values.password);
+        const user = userCredential.user;
 
-      const roleInfo = await getUserRoleByUid(user.uid);
-
-      if (roleInfo) {
         toast({
-          title: "Login Successful",
-          description: `Welcome back! Redirecting to your dashboard...`,
+            title: "Login Successful",
+            description: `Welcome back, ${selectedStaff.fullName}! Redirecting...`,
         });
         
-        let dashboardPath = `/${roleInfo.role.toLowerCase()}/dashboard`;
-        
-        // Append IDs for roles that need it for data filtering
-        if (roleInfo.role === UserRole.Doctor) {
-            dashboardPath += `?doctorId=${roleInfo.id}`;
+        let dashboardPath = `/${values.role.toLowerCase()}/dashboard`;
+        if (values.role === UserRole.Doctor) {
+            dashboardPath += `?doctorId=${user.uid}`;
         }
-
+        
         router.push(dashboardPath);
-
-      } else {
-        throw new Error("Account not found. Please contact Admin.");
-      }
 
     } catch (error: any) {
       console.error("Login Error:", error);
       let errorMessage = "An unexpected error occurred. Please try again.";
       if (error.code === 'auth/invalid-credential' || error.message.includes("Account not found")) {
-        errorMessage = "Account not found. Please contact Admin.";
+        errorMessage = "Incorrect password or account not found. Please contact Admin.";
       }
       toast({
         variant: "destructive",
@@ -121,17 +128,50 @@ export function LoginForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="email"
+          name="role"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="name@example.com" {...field} />
-              </FormControl>
+              <FormLabel>Role</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger><SelectValue placeholder="Select your role" /></SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Object.values(UserRole).map(r => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
+        
+        {selectedRole && (
+          <FormField
+            control={form.control}
+            name="staffId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder={`Select your name`} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {staffList.length > 0 ? staffList.map(staff => (
+                      <SelectItem key={staff.id} value={staff.id!}>{staff.fullName}</SelectItem>
+                    )) : <SelectItem value="-" disabled>No staff found for this role</SelectItem>}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <FormField
           control={form.control}
           name="password"
@@ -145,10 +185,10 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={!form.formState.isValid}>
           Log In
         </Button>
-        <Button type="button" variant="outline" className="w-full" onClick={handleSeed}>
+         <Button type="button" variant="outline" className="w-full" onClick={handleSeed}>
           Seed Dummy Staff
         </Button>
       </form>
