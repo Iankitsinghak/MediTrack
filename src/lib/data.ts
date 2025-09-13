@@ -22,8 +22,6 @@ let receptionists: Omit<Receptionist, 'createdAt' | 'email' | 'password' | 'role
 let pharmacists: Omit<Pharmacist, 'createdAt' | 'email' | 'password' | 'role'>[] = [
     { id: "phar1", name: "Noah Lewis" },
     { id: "phar2", name: "Ava Walker" },
-    { id: "phar3", name: "Emma Johnson"},
-    { id: "phar4", name: "William Brown"},
 ];
 
 

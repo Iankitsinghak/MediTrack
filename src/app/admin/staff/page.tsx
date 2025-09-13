@@ -17,7 +17,7 @@ import { UserPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@/lib/types";
 import { getDoctors, getPharmacists, getReceptionists } from "@/lib/data";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 
 const addStaffSchema = z.object({
@@ -41,9 +41,15 @@ export default function StaffPage() {
     const { toast } = useToast();
     
     // Initialize state with mock data
-    const [doctors, setDoctors] = useState<Partial<Doctor>[]>(getDoctors());
-    const [receptionists, setReceptionists] = useState<Partial<Receptionist>[]>(getReceptionists());
-    const [pharmacists, setPharmacists] = useState<Partial<Pharmacist>[]>(getPharmacists());
+    const [doctors, setDoctors] = useState<Partial<Doctor>[]>([]);
+    const [receptionists, setReceptionists] = useState<Partial<Receptionist>[]>([]);
+    const [pharmacists, setPharmacists] = useState<Partial<Pharmacist>[]>([]);
+
+    useEffect(() => {
+        setDoctors(getDoctors());
+        setReceptionists(getReceptionists());
+        setPharmacists(getPharmacists());
+    }, []);
     
     const loadingDoctors = false;
     const loadingReceptionists = false;
@@ -78,11 +84,11 @@ export default function StaffPage() {
 
             // Update the local state to reflect the change
             if (newStaffMember.role === UserRole.Doctor) {
-                setDoctors(prev => [...prev, newStaffMember as Doctor]);
+                setDoctors(getDoctors());
             } else if (newStaffMember.role === UserRole.Receptionist) {
-                setReceptionists(prev => [...prev, newStaffMember as Receptionist]);
+                setReceptionists(getReceptionists());
             } else if (newStaffMember.role === UserRole.Pharmacist) {
-                setPharmacists(prev => [...prev, newStaffMember as Pharmacist]);
+                setPharmacists(getPharmacists());
             }
             
             toast({
