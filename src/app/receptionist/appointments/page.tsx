@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { format, isEqual, startOfDay } from "date-fns"
-import { getAppointments, getPatients, getDoctors, scheduleAppointment } from "@/lib/data"
+import { useState, useMemo, useEffect } from "react"
+import { format, startOfDay } from "date-fns"
+import { getPatients } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -14,7 +14,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
+import { addDoc, collection, serverTimestamp, where } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { useFirestore } from "@/hooks/use-firestore"
+import type { Doctor, Appointment } from "@/lib/types"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const appointmentSchema = z.object({
     patientId: z.string({ required_error: "Please select a patient." }),
@@ -24,12 +28,15 @@ const appointmentSchema = z.object({
     reason: z.string().min(3, "Reason must be at least 3 characters."),
 });
 
+type AppointmentWithDate = Omit<Appointment, 'date'> & { date: Date | any }
+
 export default function AppointmentsPage() {
     const { toast } = useToast();
-    const router = useRouter();
-    const allAppointments = getAppointments();
-    const allPatients = getPatients();
-    const allDoctors = getDoctors();
+    const allPatients = getPatients(); // Using mock data for patients for now
+
+    // Fetch doctors and appointments from Firestore in real-time
+    const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
+    const { data: appointments, loading: loadingAppointments } = useFirestore<AppointmentWithDate>('appointments');
 
     const [date, setDate] = useState<Date | undefined>(new Date())
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,11 +50,12 @@ export default function AppointmentsPage() {
     });
 
     const appointmentsForSelectedDate = useMemo(() => {
-        if (!date) return [];
-        return allAppointments.filter(appt => 
-            startOfDay(appt.date).getTime() === startOfDay(date).getTime()
-        ).sort((a, b) => a.date.getTime() - b.date.getTime());
-    }, [date, allAppointments]);
+        if (!date || loadingAppointments) return [];
+        return appointments.filter(appt => {
+            const apptDate = appt.date.toDate();
+            return startOfDay(apptDate).getTime() === startOfDay(date).getTime()
+        }).sort((a, b) => a.date.toDate().getTime() - b.date.toDate().getTime());
+    }, [date, appointments, loadingAppointments]);
     
     const handleDateSelect = (selectedDate: Date | undefined) => {
         setDate(selectedDate);
@@ -61,31 +69,42 @@ export default function AppointmentsPage() {
         setIsModalOpen(true);
     };
 
-    function onSubmit(values: z.infer<typeof appointmentSchema>) {
+    async function onSubmit(values: z.infer<typeof appointmentSchema>) {
         const [hours, minutes] = values.appointmentTime.split(':').map(Number);
         const appointmentDateTime = new Date(values.appointmentDate);
         appointmentDateTime.setHours(hours, minutes);
 
         try {
-            scheduleAppointment({
+            const patient = allPatients.find(p => p.id === values.patientId);
+            const doctor = doctors.find(d => d.id === values.doctorId);
+
+            if (!patient || !doctor) {
+                throw new Error("Selected patient or doctor not found.");
+            }
+
+            await addDoc(collection(db, "appointments"), {
                 patientId: values.patientId,
+                patientName: patient.fullName,
                 doctorId: values.doctorId,
+                doctorName: doctor.fullName,
                 date: appointmentDateTime,
                 reason: values.reason,
+                status: 'Scheduled',
+                createdAt: serverTimestamp(),
             });
+
             toast({
                 title: "Appointment Scheduled",
                 description: "The new appointment has been added to the calendar.",
             });
             setIsModalOpen(false);
-            // This is a temp fix to "refresh" the data. With a real DB, you'd re-fetch.
-            router.refresh(); 
         } catch (error) {
-            toast({
+             toast({
                 variant: "destructive",
                 title: "Failed to schedule",
                 description: (error as Error).message,
             });
+            console.error("Scheduling error:", error);
         }
     }
 
@@ -118,7 +137,13 @@ export default function AppointmentsPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {appointmentsForSelectedDate.length > 0 ? (
+                        {loadingAppointments ? (
+                            <div className="space-y-4">
+                                <Skeleton className="h-16 w-full" />
+                                <Skeleton className="h-16 w-full" />
+                                <Skeleton className="h-16 w-full" />
+                            </div>
+                        ) : appointmentsForSelectedDate.length > 0 ? (
                             appointmentsForSelectedDate.map((appt) => (
                                 <div key={appt.id} className="flex items-center gap-4 p-2 rounded-md border bg-muted/50">
                                     <div className="grid gap-1">
@@ -126,7 +151,7 @@ export default function AppointmentsPage() {
                                         <p className="text-sm text-muted-foreground">{appt.reason}</p>
                                     </div>
                                     <div className="ml-auto text-right">
-                                        <p className="font-medium">{format(appt.date, "p")}</p>
+                                        <p className="font-medium">{format(appt.date.toDate(), "p")}</p>
                                         <p className="text-sm text-muted-foreground">{appt.doctorName}</p>
                                     </div>
                                 </div>
@@ -177,10 +202,13 @@ export default function AppointmentsPage() {
                                             <FormLabel>Doctor</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
-                                                    <SelectTrigger><SelectValue placeholder="Select a doctor" /></SelectTrigger>
+                                                    <SelectTrigger>
+                                                      <SelectValue placeholder={loadingDoctors ? "Loading doctors..." : "Select a doctor"} />
+                                                    </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {allDoctors.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                                                    {loadingDoctors ? <SelectItem value="loading" disabled>Loading...</SelectItem> 
+                                                    : doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.fullName}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />

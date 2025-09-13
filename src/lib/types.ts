@@ -13,6 +13,17 @@ export interface User {
   department?: string; // Only for Doctors
 }
 
+export interface Doctor {
+  id: string;
+  uid: string;
+  fullName: string;
+  email: string;
+  role: UserRole.Doctor;
+  department: string;
+  createdAt: any; // Firestore timestamp
+}
+
+
 export interface Patient {
   id: string;
   fullName: string;

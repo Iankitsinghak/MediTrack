@@ -5,6 +5,10 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
 import React from "react"
+import { createUserWithEmailAndPassword } from "firebase/auth"
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"
+import { auth, db } from "@/lib/firebase"
+
 
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { UserRole } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
@@ -38,6 +43,7 @@ const formSchema = z.object({
 
 export function SignupForm() {
   const router = useRouter()
+  const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -51,11 +57,37 @@ export function SignupForm() {
 
   const role = form.watch("role")
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
-    // In a real app, you'd call Firebase auth and Firestore to create a user here
-    const dashboardPath = `/${values.role.toLowerCase()}/dashboard`
-    router.push(dashboardPath)
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        const user = userCredential.user;
+
+        const collectionName = `${values.role.toLowerCase()}s`;
+        
+        await setDoc(doc(db, collectionName, user.uid), {
+            uid: user.uid,
+            fullName: values.fullName,
+            email: values.email,
+            role: values.role,
+            department: values.department || null,
+            createdAt: serverTimestamp()
+        });
+
+        toast({
+            title: "Account Created",
+            description: "Your account has been successfully created.",
+        });
+
+        const dashboardPath = `/${values.role.toLowerCase()}/dashboard`
+        router.push(dashboardPath)
+    } catch (error: any) {
+        console.error("Signup Error:", error);
+        toast({
+            variant: "destructive",
+            title: "Uh oh! Something went wrong.",
+            description: error.message || "There was a problem with your request.",
+        });
+    }
   }
 
   function onGoogleSignIn() {
