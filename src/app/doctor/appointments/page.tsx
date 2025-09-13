@@ -2,34 +2,34 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { format } from "date-fns"
-import { getAppointments } from "@/lib/data"
+import { getAppointments, getDoctors } from "@/lib/data"
+import type { Appointment } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Clock, Check } from "lucide-react"
-
-// For this prototype, we'll hardcode the logged-in doctor's ID.
-// In a real app, this would come from an authentication context.
-const LOGGED_IN_DOCTOR_ID = "doc1";
+import { useSearchParams } from 'next/navigation'
 
 export default function AppointmentsPage() {
-    // We need to manage appointments in state to reflect changes
-    const [appointments, setAppointments] = useState(getAppointments());
+    // We'll get the logged-in doctor's ID from the URL for this prototype
+    const searchParams = useSearchParams()
+    const loggedInDoctorId = searchParams.get('doctorId') || getDoctors()[0].id;
 
-    // This effect can be used to refetch data in a real app.
-    // For our prototype, it just ensures we have the latest from our mock data store.
+    // We need to manage appointments in state to reflect changes
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+
     useEffect(() => {
+        // In a real app, you'd fetch this data. Here we filter the mock data.
         setAppointments(getAppointments());
     }, []);
 
-
     const doctorAppointments = useMemo(() => {
         return appointments
-            .filter(appt => appt.doctorId === LOGGED_IN_DOCTOR_ID)
+            .filter(appt => appt.doctorId === loggedInDoctorId)
             .sort((a, b) => a.date.getTime() - b.date.getTime());
-    }, [appointments]);
+    }, [appointments, loggedInDoctorId]);
 
-    const upcomingAppointments = doctorAppointments.filter(a => a.status === 'Scheduled');
-    const completedAppointments = doctorAppointments.filter(a => a.status === 'Completed');
+    const upcomingAppointments = doctorAppointments.filter(a => new Date(a.date) >= new Date() && a.status === 'Scheduled');
+    const completedAppointments = doctorAppointments.filter(a => new Date(a.date) < new Date() || a.status === 'Completed');
 
     return (
         <div className="flex-1 space-y-4">
@@ -54,7 +54,7 @@ export default function AppointmentsPage() {
                                 {upcomingAppointments.length > 0 ? (
                                     upcomingAppointments.map((appt) => (
                                         <TableRow key={appt.id}>
-                                            <TableCell>{format(appt.date, "PPP p")}</TableCell>
+                                            <TableCell>{format(new Date(appt.date), "PPP p")}</TableCell>
                                             <TableCell className="font-medium">{appt.patientName}</TableCell>
                                             <TableCell>{appt.reason}</TableCell>
                                         </TableRow>
@@ -91,7 +91,7 @@ export default function AppointmentsPage() {
                                 {completedAppointments.length > 0 ? (
                                     completedAppointments.map((appt) => (
                                         <TableRow key={appt.id}>
-                                            <TableCell>{format(appt.date, "PPP p")}</TableCell>
+                                            <TableCell>{format(new Date(appt.date), "PPP p")}</TableCell>
                                             <TableCell className="font-medium">{appt.patientName}</TableCell>
                                             <TableCell>{appt.reason}</TableCell>
                                         </TableRow>

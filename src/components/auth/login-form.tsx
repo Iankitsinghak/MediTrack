@@ -17,16 +17,21 @@ import {
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { UserRole } from "@/lib/types"
+import { getDoctors } from "@/lib/data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+import React from "react"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   role: z.nativeEnum(UserRole),
+  doctorId: z.string().optional(),
 })
 
 export function LoginForm() {
   const router = useRouter()
+  const doctors = getDoctors()
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -36,17 +41,24 @@ export function LoginForm() {
     },
   })
 
+  const role = form.watch("role")
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values)
-    // In a real app, you'd call Firebase auth here and get the role from Firestore
-    const dashboardPath = `/${values.role.toLowerCase()}/dashboard`
+    let dashboardPath = `/${values.role.toLowerCase()}/dashboard`
+
+    if (values.role === UserRole.Doctor) {
+        const doctorId = values.doctorId || doctors[0].id; // Default to first doctor if none selected
+        dashboardPath += `?doctorId=${doctorId}`;
+    }
+
     router.push(dashboardPath)
   }
   
   function onGoogleSignIn() {
     // In a real app, you'd call Firebase Google OAuth provider here
     // For now, we'll default to the doctor dashboard
-    router.push("/doctor/dashboard")
+    router.push(`/doctor/dashboard?doctorId=${doctors[0].id}`)
   }
 
   return (
@@ -100,6 +112,30 @@ export function LoginForm() {
             </FormItem>
           )}
         />
+        {role === UserRole.Doctor && (
+           <FormField
+              control={form.control}
+              name="doctorId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Doctor</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a doctor to log in as" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {doctors.map(doctor => (
+                        <SelectItem key={doctor.id} value={doctor.id}>{doctor.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+        )}
         <Button type="submit" className="w-full">
           Log In
         </Button>

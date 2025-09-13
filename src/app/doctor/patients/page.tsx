@@ -1,24 +1,28 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { getPatients } from "@/lib/data"
+import { useState, useMemo, useEffect } from "react"
+import { getPatients, getDoctors } from "@/lib/data"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Search } from "lucide-react"
-
-// For this prototype, we'll hardcode the logged-in doctor's ID.
-// In a real app, this would come from an authentication context.
-const LOGGED_IN_DOCTOR_ID = "doc1";
+import { useSearchParams } from 'next/navigation'
 
 export default function PatientsPage() {
-    const allPatients = getPatients();
+    const searchParams = useSearchParams()
+    const loggedInDoctorId = searchParams.get('doctorId') || getDoctors()[0].id;
+    
+    const [allPatients, setAllPatients] = useState(getPatients());
     const [searchTerm, setSearchTerm] = useState("");
 
+    useEffect(() => {
+        setAllPatients(getPatients());
+    }, []);
+
     const doctorPatients = useMemo(() => {
-        return allPatients.filter(patient => patient.doctorId === LOGGED_IN_DOCTOR_ID);
-    }, [allPatients]);
+        return allPatients.filter(patient => patient.doctorId === loggedInDoctorId);
+    }, [allPatients, loggedInDoctorId]);
 
     const filteredPatients = useMemo(() => {
         if (!searchTerm) return doctorPatients;
