@@ -1,3 +1,6 @@
+"use client"
+
+import React from "react"
 import { BookUser, CalendarCheck, UserPlus, Users } from "lucide-react"
 import { StatCard } from "./stat-card"
 import type { StatCardData, Appointment } from "@/lib/types"
