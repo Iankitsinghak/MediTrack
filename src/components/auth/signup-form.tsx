@@ -8,10 +8,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { collection, getDocs } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { UserRole } from "@/lib/types"
 import { handleAddStaff } from "@/lib/actions"
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 const adminSignupSchema = z.object({
   fullName: z.string().min(3, "Full name is required"),
@@ -30,20 +30,6 @@ export function AdminSignupForm() {
     });
 
     async function onSubmit(values: z.infer<typeof adminSignupSchema>) {
-        
-        // Ensure this is the first admin being created via this form.
-        // Google Sign-In might create the first admin too.
-        const adminsCollection = collection(db, 'admins');
-        const adminsSnapshot = await getDocs(adminsCollection);
-        if (adminsSnapshot.docs.some(doc => doc.data().email === values.email)) {
-             toast({
-                variant: "destructive",
-                title: "Signup Error",
-                description: "This email is already registered as an admin.",
-            });
-            return;
-        }
-
         const result = await handleAddStaff({ ...values, role: UserRole.Admin });
 
         if (result.error) {
@@ -55,9 +41,21 @@ export function AdminSignupForm() {
         } else {
             toast({
                 title: "Admin Account Created",
-                description: "You can now log in with your credentials.",
+                description: "Redirecting to your new dashboard...",
             });
-            router.push('/login');
+            // Automatically log the new admin in
+            try {
+              await signInWithEmailAndPassword(auth, values.email, values.password);
+              router.push('/admin/dashboard');
+              router.refresh();
+            } catch (error) {
+               toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: "Something went wrong. Please try logging in manually.",
+              });
+              router.push('/login');
+            }
         }
     }
 
