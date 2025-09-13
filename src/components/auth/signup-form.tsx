@@ -9,9 +9,9 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { UserRole } from "@/lib/types"
-import { handleAddStaff } from "@/lib/actions"
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const adminSignupSchema = z.object({
   fullName: z.string().min(3, "Full name is required"),
@@ -30,32 +30,40 @@ export function AdminSignupForm() {
     });
 
     async function onSubmit(values: z.infer<typeof adminSignupSchema>) {
-        const result = await handleAddStaff({ ...values, role: UserRole.Admin });
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+            const user = userCredential.user;
 
-        if (result.error) {
-            toast({
-                variant: "destructive",
-                title: "Signup Failed",
-                description: result.error,
-            });
-        } else {
+            const adminProfile = {
+                uid: user.uid,
+                fullName: values.fullName,
+                email: values.email,
+                role: UserRole.Admin,
+                createdAt: serverTimestamp(),
+            };
+
+            await setDoc(doc(db, "admins", user.uid), adminProfile);
+
             toast({
                 title: "Admin Account Created",
                 description: "Redirecting to your new dashboard...",
             });
-            // Automatically log the new admin in
-            try {
-              await signInWithEmailAndPassword(auth, values.email, values.password);
-              router.push('/admin/dashboard');
-              router.refresh();
-            } catch (error) {
-               toast({
-                variant: "destructive",
-                title: "Login Failed",
-                description: "Something went wrong. Please try logging in manually.",
-              });
-              router.push('/login');
+
+            // No need to sign in again, createUserWithEmailAndPassword does it automatically
+            router.push('/admin/dashboard');
+            router.refresh();
+
+        } catch (error: any) {
+            console.error("Admin Signup Error:", error);
+            let description = "An unexpected error occurred.";
+             if (error.code === 'auth/email-already-in-use') {
+                description = "This email is already registered. Please try logging in.";
             }
+            toast({
+                variant: "destructive",
+                title: "Signup Failed",
+                description: description,
+            });
         }
     }
 

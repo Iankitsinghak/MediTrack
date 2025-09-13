@@ -16,7 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserRole } from "@/lib/types";
 import { useFirestore } from "@/hooks/use-firestore";
 import type { Doctor, Receptionist, Pharmacist, Admin } from "@/lib/types";
-import { handleAddStaff } from "@/lib/actions";
+import { auth, db } from "@/lib/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 
 const addStaffSchema = z.object({
@@ -58,20 +60,59 @@ export default function StaffPage() {
     const role = form.watch("role");
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
-        const result = await handleAddStaff(values);
-
-        if (result.error) {
-            toast({
+        const adminUser = auth.currentUser;
+        if (!adminUser) {
+             toast({
                 variant: "destructive",
-                title: "Failed to add staff",
-                description: result.error,
+                title: "Authentication Error",
+                description: "You must be logged in as an admin to add staff.",
             });
-        } else {
+            return;
+        }
+
+        try {
+            // We can't use the Admin SDK in this environment, so we'll create the user on the client.
+            // In a real production app, this would be a backend function for security.
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+            const user = userCredential.user;
+
+            const userProfile: any = {
+                uid: user.uid,
+                fullName: values.fullName,
+                email: values.email,
+                role: values.role,
+                createdAt: serverTimestamp()
+            };
+
+            if (values.role === UserRole.Doctor) {
+                userProfile.department = values.department;
+            }
+
+            // Save the user profile to the correct collection
+            await setDoc(doc(db, `${values.role.toLowerCase()}s`, user.uid), userProfile);
+            
             toast({
                 title: "Staff Member Added",
                 description: `${values.fullName} has been created and can now log in.`,
             });
             form.reset();
+            
+            // IMPORTANT: Sign the admin back in, as createUserWithEmailAndPassword signs the new user in.
+            // This is a workaround for the client-side user creation.
+            await auth.updateCurrentUser(adminUser);
+
+
+        } catch (error: any) {
+            console.error("Error adding staff:", error);
+            let description = "An unexpected error occurred.";
+            if (error.code === 'auth/email-already-in-use') {
+                description = "This email is already registered. Please use a different email.";
+            }
+             toast({
+                variant: "destructive",
+                title: "Failed to add staff",
+                description: description,
+            });
         }
     }
 
