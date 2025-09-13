@@ -95,12 +95,15 @@ export default function StaffPage() {
                 title: "Staff Member Added",
                 description: `${values.fullName} has been created and can now log in.`,
             });
-            form.reset();
             
             // IMPORTANT: Sign the admin back in, as createUserWithEmailAndPassword signs the new user in.
             // This is a workaround for the client-side user creation.
-            await auth.updateCurrentUser(adminUser);
-
+             if (auth.currentUser?.uid !== adminUser.uid) {
+                // To prevent session swapping, we must re-authenticate the admin.
+                // This is a simplified approach. A robust solution uses a server-side endpoint (Cloud Function) to create users.
+                await auth.updateCurrentUser(adminUser);
+            }
+            form.reset();
 
         } catch (error: any) {
             console.error("Error adding staff:", error);
