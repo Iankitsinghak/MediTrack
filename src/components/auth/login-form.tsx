@@ -19,7 +19,8 @@ import { Separator } from "@/components/ui/separator"
 import { UserRole, type Doctor, type Receptionist, type Pharmacist } from "@/lib/types"
 import { useFirestore } from "@/hooks/use-firestore"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
-import React from "react"
+import React, { useEffect } from "react"
+import { seedStaff } from "@/lib/seed"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -45,6 +46,40 @@ export function LoginForm() {
   })
 
   const role = form.watch("role")
+  const staffId = form.watch("staffId")
+
+  useEffect(() => {
+    // When role changes, reset the selected staff member
+    form.resetField("staffId");
+  }, [role, form]);
+
+  useEffect(() => {
+    // When staffId changes, update the email field based on the selected staff member
+    if (staffId) {
+        let selectedStaff;
+        switch(role) {
+            case UserRole.Doctor:
+                selectedStaff = doctors.find(d => d.id === staffId);
+                break;
+            case UserRole.Receptionist:
+                selectedStaff = receptionists.find(r => r.id === staffId);
+                break;
+            case UserRole.Pharmacist:
+                selectedStaff = pharmacists.find(p => p.id === staffId);
+                break;
+        }
+        if (selectedStaff) {
+            form.setValue('email', selectedStaff.email);
+            // In a real app, you'd likely not set the password,
+            // but for this prototype it simplifies the login flow.
+            form.setValue('password', 'password123');
+        }
+    } else {
+        form.setValue('email', '');
+        form.setValue('password', '');
+    }
+  }, [staffId, role, doctors, receptionists, pharmacists, form])
+
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values)
@@ -78,12 +113,10 @@ export function LoginForm() {
   
   function onGoogleSignIn() {
     // In a real app, you'd call Firebase Google OAuth provider here
-    // For now, we'll default to the doctor dashboard
-    if (doctors && doctors.length > 0) {
-      router.push(`/doctor/dashboard?doctorId=${doctors[0].id}`)
-    }
+    // For now, we'll default to the admin dashboard
+    router.push('/admin/dashboard')
   }
-  
+
   const staffByRole = {
     [UserRole.Doctor]: { data: doctors, loading: loadingDoctors, placeholder: "Select a doctor" },
     [UserRole.Receptionist]: { data: receptionists, loading: loadingReceptionists, placeholder: "Select a receptionist" },
@@ -128,10 +161,7 @@ export function LoginForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role (for simulation)</FormLabel>
-               <Select onValueChange={(value) => {
-                   field.onChange(value);
-                   form.setValue('staffId', undefined); // Reset staffId when role changes
-               }} defaultValue={field.value}>
+               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role to log in as" />
@@ -154,7 +184,7 @@ export function LoginForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Select Staff Member</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={currentStaff.loading ? `Loading ${role.toLowerCase()}s...` : currentStaff.placeholder} />
@@ -178,6 +208,7 @@ export function LoginForm() {
         <Button type="submit" className="w-full">
           Log In
         </Button>
+         <Button variant="secondary" className="w-full" type="button" onClick={seedStaff}>Seed Dummy Staff</Button>
       </form>
       <div className="relative my-6">
         <Separator />

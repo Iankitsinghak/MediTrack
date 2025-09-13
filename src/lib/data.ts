@@ -5,9 +5,7 @@ import { Appointment, Patient, UserRole, Medicine, Supplier, Prescription, Medic
 import { add, format, subDays } from "date-fns";
 
 const doctors = [
-  { id: "doc1", name: "Dr. Smith", department: "Cardiology" },
-  { id: "doc2", name: "Dr. Evans", department: "Neurology" },
-  { id: "doc3", name: "Dr. Patel", department: "Pediatrics" },
+  // This will now be populated from Firestore or the seed script
 ];
 
 const availableBeds = [
