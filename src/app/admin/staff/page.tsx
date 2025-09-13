@@ -58,13 +58,23 @@ export default function StaffPage() {
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
         try {
+            // Prevent adding Admin role via this form
+            if (values.role === UserRole.Admin) {
+                toast({
+                    variant: "destructive",
+                    title: "Invalid Role",
+                    description: "Cannot add an Admin from this form.",
+                });
+                return;
+            }
+
             const collectionName = `${values.role.toLowerCase()}s`;
             
             const staffData: any = {
                 fullName: values.fullName,
                 email: values.email,
-                // In a real app, you would hash this password before storing it.
-                // For this prototype, we're storing it as-is for simplicity.
+                // In a real app, you would hash this password before storing it,
+                // and likely use Firebase Auth to create a user.
                 password: values.password,
                 role: values.role,
                 createdAt: serverTimestamp(),
@@ -193,7 +203,7 @@ export default function StaffPage() {
                                 <TableRow>
                                     <TableHead>Full Name</TableHead>
                                     <TableHead>Role</TableHead>
-                                    <TableHead>Department</TableHead>
+                                    <TableHead>Department/Email</TableHead>
                                     <TableHead>Email</TableHead>
                                 </TableRow>
                             </TableHeader>

@@ -1,12 +1,27 @@
 // In a real application, this would be a database connection.
 // For this prototype, we're using in-memory data to simulate a backend.
 
-import { Appointment, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder } from "./types";
+import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist } from "./types";
 import { add, format, subDays } from "date-fns";
 
-const doctors = [
-  // This will now be populated from Firestore or the seed script
+const doctors: Omit<Doctor, 'createdAt' | 'email' | 'password' | 'role'>[] = [
+  { id: "doc1", name: "Dr. Evelyn Reed", department: "Cardiology" },
+  { id: "doc2", name: "Dr. Samuel Green", department: "Neurology" },
+  { id: "doc3", name: "Dr. Isabella White", department: "Pediatrics" },
+  { id: "doc4", name: "Dr. Mason King", department: "Orthopedics" },
 ];
+
+const receptionists: Omit<Receptionist, 'createdAt' | 'email' | 'password' | 'role'>[] = [
+    { id: "rec1", name: "Olivia Martin" },
+    { id: "rec2", name: "Liam Harris" },
+    { id: "rec3", name: "Sophia Clark" },
+];
+
+const pharmacists: Omit<Pharmacist, 'createdAt' | 'email' | 'password' | 'role'>[] = [
+    { id: "phar1", name: "Noah Lewis" },
+    { id: "phar2", name: "Ava Walker" },
+];
+
 
 const availableBeds = [
   { id: "bed101", number: "101", isOccupied: false },
@@ -23,12 +38,12 @@ const initialPatients: Patient[] = [
     { id: "PAT005", fullName: "Ethan Davis", dateOfBirth: "1978-07-22", gender: "Male", doctorId: "doc2" },
 ];
 
-const initialAppointments: Appointment[] = [
-    { id: "APP001", patientId: "PAT001", patientName: "Alice Johnson", doctorId: "doc1", doctorName: "Dr. Smith", date: new Date(new Date().setHours(10, 0, 0, 0)), reason: "Annual Checkup", status: "Scheduled" },
-    { id: "APP002", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Evans", date: new Date(new Date().setHours(10, 30, 0, 0)), reason: "Follow-up", status: "Scheduled" },
-    { id: "APP003", patientId: "PAT003", patientName: "Charlie Brown", doctorId: "doc3", doctorName: "Dr. Patel", date: new Date(new Date().setHours(11, 0, 0, 0)), reason: "Consultation", status: "Completed" },
-    { id: "APP004", patientId: "PAT004", patientName: "Diana Miller", doctorId: "doc1", doctorName: "Dr. Smith", date: new Date(new Date().setHours(12, 15, 0, 0)), reason: "New Patient Visit", status: "Scheduled" },
-    { id: "APP005", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Evans", date: add(new Date(), {days: 1, hours: 14}), reason: "Test Results", status: "Scheduled" },
+const initialAppointments: any[] = [
+    { id: "APP001", patientId: "PAT001", patientName: "Alice Johnson", doctorId: "doc1", doctorName: "Dr. Evelyn Reed", date: new Date(new Date().setHours(10, 0, 0, 0)), reason: "Annual Checkup", status: "Scheduled" },
+    { id: "APP002", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Samuel Green", date: new Date(new Date().setHours(10, 30, 0, 0)), reason: "Follow-up", status: "Scheduled" },
+    { id: "APP003", patientId: "PAT003", patientName: "Charlie Brown", doctorId: "doc3", doctorName: "Dr. Isabella White", date: new Date(new Date().setHours(11, 0, 0, 0)), reason: "Consultation", status: "Completed" },
+    { id: "APP004", patientId: "PAT004", patientName: "Diana Miller", doctorId: "doc1", doctorName: "Dr. Evelyn Reed", date: new Date(new Date().setHours(12, 15, 0, 0)), reason: "New Patient Visit", status: "Scheduled" },
+    { id: "APP005", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Samuel Green", date: add(new Date(), {days: 1, hours: 14}), reason: "Test Results", status: "Scheduled" },
 ];
 
 const initialSuppliers: Supplier[] = [
@@ -61,7 +76,7 @@ const initialMedicationOrders: MedicationOrder[] = [
 
 // In-memory data stores
 let patients: Patient[] = [...initialPatients];
-let appointments: Appointment[] = [...initialAppointments];
+let appointments: any[] = [...initialAppointments];
 let suppliers: Supplier[] = [...initialSuppliers];
 let medicines: Medicine[] = [...initialMedicines];
 let prescriptions: Prescription[] = [...initialPrescriptions];
@@ -71,6 +86,8 @@ let medicationOrders: MedicationOrder[] = [...initialMedicationOrders];
 // --- Data Access & Mutation Functions ---
 
 export const getDoctors = () => doctors;
+export const getReceptionists = () => receptionists;
+export const getPharmacists = () => pharmacists;
 export const getAvailableBeds = () => availableBeds.filter(bed => !bed.isOccupied);
 export const getPatients = () => patients;
 export const getAppointments = () => appointments;
@@ -94,13 +111,13 @@ export const registerPatient = (patientData: Omit<Patient, 'id'> & { bedId?: str
     return newPatient;
 };
 
-export const scheduleAppointment = (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'doctorName' | 'status'>) => {
+export const scheduleAppointment = (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'doctorName' | 'status' | 'createdAt'>) => {
     const patient = patients.find(p => p.id === appointmentData.patientId);
     const doctor = doctors.find(d => d.id === appointmentData.doctorId);
 
     if (!patient || !doctor) throw new Error("Patient or Doctor not found");
 
-    const newAppointment: Appointment = {
+    const newAppointment: any = {
         ...appointmentData,
         id: `APP${String(appointments.length + 1).padStart(3, '0')}`,
         patientName: patient.fullName,

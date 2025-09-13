@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { format, startOfDay } from "date-fns"
-import { getPatients } from "@/lib/data"
+import { getPatients, getDoctors, scheduleAppointment } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -14,8 +14,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { addDoc, collection, serverTimestamp, where } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { useFirestore } from "@/hooks/use-firestore"
 import type { Doctor, Appointment } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -32,11 +30,17 @@ type AppointmentWithDate = Omit<Appointment, 'date'> & { date: Date | any }
 
 export default function AppointmentsPage() {
     const { toast } = useToast();
-    const allPatients = getPatients(); // Using mock data for patients for now
+    const allPatients = getPatients();
+    const doctors = getDoctors();
 
-    // Fetch doctors and appointments from Firestore in real-time
-    const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
+    // Still fetch appointments from Firestore for real-time updates
     const { data: appointments, loading: loadingAppointments } = useFirestore<AppointmentWithDate>('appointments');
+    const [localAppointments, setLocalAppointments] = useState<Appointment[]>([]);
+
+    useEffect(() => {
+        setLocalAppointments(appointments as Appointment[]);
+    }, [appointments]);
+
 
     const [date, setDate] = useState<Date | undefined>(new Date())
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,12 +54,16 @@ export default function AppointmentsPage() {
     });
 
     const appointmentsForSelectedDate = useMemo(() => {
-        if (!date || loadingAppointments) return [];
-        return appointments.filter(appt => {
+        if (!date) return [];
+        const filteredFromFirestore = appointments.filter(appt => {
             const apptDate = appt.date.toDate();
             return startOfDay(apptDate).getTime() === startOfDay(date).getTime()
-        }).sort((a, b) => a.date.toDate().getTime() - b.date.toDate().getTime());
-    }, [date, appointments, loadingAppointments]);
+        });
+
+        const allAppointments = [...filteredFromFirestore];
+
+        return allAppointments.sort((a, b) => a.date.toDate().getTime() - b.date.toDate().getTime());
+    }, [date, appointments]);
     
     const handleDateSelect = (selectedDate: Date | undefined) => {
         setDate(selectedDate);
@@ -75,24 +83,17 @@ export default function AppointmentsPage() {
         appointmentDateTime.setHours(hours, minutes);
 
         try {
-            const patient = allPatients.find(p => p.id === values.patientId);
-            const doctor = doctors.find(d => d.id === values.doctorId);
-
-            if (!patient || !doctor) {
-                throw new Error("Selected patient or doctor not found.");
-            }
-
-            await addDoc(collection(db, "appointments"), {
+            // Using the mock function to add the appointment
+            const newAppointment = scheduleAppointment({
                 patientId: values.patientId,
-                patientName: patient.fullName,
                 doctorId: values.doctorId,
-                doctorName: doctor.fullName,
                 date: appointmentDateTime,
                 reason: values.reason,
-                status: 'Scheduled',
-                createdAt: serverTimestamp(),
             });
 
+            // Optimistically update the local state
+            setLocalAppointments(prev => [...prev, newAppointment]);
+            
             toast({
                 title: "Appointment Scheduled",
                 description: "The new appointment has been added to the calendar.",
@@ -151,7 +152,7 @@ export default function AppointmentsPage() {
                                         <p className="text-sm text-muted-foreground">{appt.reason}</p>
                                     </div>
                                     <div className="ml-auto text-right">
-                                        <p className="font-medium">{format(appt.date.toDate(), "p")}</p>
+                                        <p className="font-medium">{format(appt.date.toDate ? appt.date.toDate() : appt.date, "p")}</p>
                                         <p className="text-sm text-muted-foreground">{appt.doctorName}</p>
                                     </div>
                                 </div>
@@ -203,12 +204,11 @@ export default function AppointmentsPage() {
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                      <SelectValue placeholder={loadingDoctors ? "Loading doctors..." : "Select a doctor"} />
+                                                      <SelectValue placeholder={"Select a doctor"} />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {loadingDoctors ? <SelectItem value="loading" disabled>Loading...</SelectItem> 
-                                                    : doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.fullName}</SelectItem>)}
+                                                    {doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />

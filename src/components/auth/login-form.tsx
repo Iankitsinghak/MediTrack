@@ -17,10 +17,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { UserRole, type Doctor, type Receptionist, type Pharmacist } from "@/lib/types"
-import { useFirestore } from "@/hooks/use-firestore"
+import { getDoctors, getPharmacists, getReceptionists } from "@/lib/data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 import React, { useEffect } from "react"
-import { seedStaff } from "@/lib/seed"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -31,80 +30,42 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const router = useRouter()
-  const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
-  const { data: receptionists, loading: loadingReceptionists } = useFirestore<Receptionist>('receptionists');
-  const { data: pharmacists, loading: loadingPharmacists } = useFirestore<Pharmacist>('pharmacists');
-
+  // Using mock data for the login selection
+  const doctors = getDoctors();
+  const receptionists = getReceptionists();
+  const pharmacists = getPharmacists();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
-      password: "",
+      password: "password123", // Pre-filled for demo purposes
       role: UserRole.Doctor,
     },
   })
 
   const role = form.watch("role")
-  const staffId = form.watch("staffId")
-
-  useEffect(() => {
-    // When role changes, reset the selected staff member
-    form.resetField("staffId");
-  }, [role, form]);
-
-  useEffect(() => {
-    // When staffId changes, update the email field based on the selected staff member
-    if (staffId) {
-        let selectedStaff;
-        switch(role) {
-            case UserRole.Doctor:
-                selectedStaff = doctors.find(d => d.id === staffId);
-                break;
-            case UserRole.Receptionist:
-                selectedStaff = receptionists.find(r => r.id === staffId);
-                break;
-            case UserRole.Pharmacist:
-                selectedStaff = pharmacists.find(p => p.id === staffId);
-                break;
-        }
-        if (selectedStaff) {
-            form.setValue('email', selectedStaff.email);
-            // In a real app, you'd likely not set the password,
-            // but for this prototype it simplifies the login flow.
-            form.setValue('password', 'password123');
-        }
-    } else {
-        form.setValue('email', '');
-        form.setValue('password', '');
-    }
-  }, [staffId, role, doctors, receptionists, pharmacists, form])
-
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values)
     let dashboardPath = `/${values.role.toLowerCase()}/dashboard`
 
-    // In a real app, you'd perform authentication here against the email and password.
-    // For this prototype, we're just checking that a staff member is selected.
+    if (values.role === UserRole.Admin) {
+        // Admin login is simplified for the demo
+        router.push(dashboardPath);
+        return;
+    }
+    
+    if (!values.staffId) {
+        form.setError("staffId", { type: "manual", message: "Please select a staff member." });
+        return;
+    }
 
     if (values.role === UserRole.Doctor) {
-        if (!values.staffId) {
-            form.setError("staffId", { type: "manual", message: "Please select a doctor." });
-            return;
-        }
         dashboardPath += `?doctorId=${values.staffId}`;
     } else if (values.role === UserRole.Receptionist) {
-         if (!values.staffId) {
-            form.setError("staffId", { type: "manual", message: "Please select a receptionist." });
-            return;
-        }
         dashboardPath += `?receptionistId=${values.staffId}`;
     } else if (values.role === UserRole.Pharmacist) {
-         if (!values.staffId) {
-            form.setError("staffId", { type: "manual", message: "Please select a pharmacist." });
-            return;
-        }
         dashboardPath += `?pharmacistId=${values.staffId}`;
     }
 
@@ -112,16 +73,14 @@ export function LoginForm() {
   }
   
   function onGoogleSignIn() {
-    // In a real app, you'd call Firebase Google OAuth provider here
-    // For now, we'll default to the admin dashboard
     router.push('/admin/dashboard')
   }
 
   const staffByRole = {
-    [UserRole.Doctor]: { data: doctors, loading: loadingDoctors, placeholder: "Select a doctor" },
-    [UserRole.Receptionist]: { data: receptionists, loading: loadingReceptionists, placeholder: "Select a receptionist" },
-    [UserRole.Pharmacist]: { data: pharmacists, loading: loadingPharmacists, placeholder: "Select a pharmacist" },
-    [UserRole.Admin]: { data: [], loading: false, placeholder: "" }
+    [UserRole.Doctor]: { data: doctors, placeholder: "Select a doctor" },
+    [UserRole.Receptionist]: { data: receptionists, placeholder: "Select a receptionist" },
+    [UserRole.Pharmacist]: { data: pharmacists, placeholder: "Select a pharmacist" },
+    [UserRole.Admin]: { data: [], placeholder: "" }
   }
 
   const currentStaff = staffByRole[role];
@@ -161,7 +120,7 @@ export function LoginForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role (for simulation)</FormLabel>
-               <Select onValueChange={field.onChange} defaultValue={field.value}>
+               <Select onValueChange={(value) => { field.onChange(value); form.resetField("staffId"); }} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role to log in as" />
@@ -187,17 +146,13 @@ export function LoginForm() {
                   <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={currentStaff.loading ? `Loading ${role.toLowerCase()}s...` : currentStaff.placeholder} />
+                        <SelectValue placeholder={currentStaff.placeholder} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {currentStaff.loading ? (
-                        <SelectItem value="loading" disabled>Loading...</SelectItem>
-                      ) : (
-                        currentStaff.data?.map(staff => (
-                          <SelectItem key={staff.id} value={staff.id}>{staff.fullName}</SelectItem>
-                        ))
-                      )}
+                      {currentStaff.data?.map(staff => (
+                        <SelectItem key={staff.id} value={staff.id}>{staff.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -208,7 +163,6 @@ export function LoginForm() {
         <Button type="submit" className="w-full">
           Log In
         </Button>
-         <Button variant="secondary" className="w-full" type="button" onClick={seedStaff}>Seed Dummy Staff</Button>
       </form>
       <div className="relative my-6">
         <Separator />
@@ -216,9 +170,9 @@ export function LoginForm() {
           OR
         </span>
       </div>
-      <Button variant="outline" className="w-full" onClick={onGoogleSignIn} disabled={loadingDoctors}>
+      <Button variant="outline" className="w-full" onClick={onGoogleSignIn}>
         <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-76.2 64.5C308.6 106.5 280.4 96 248 96c-84.3 0-152.3 67.8-152.3 151.8s68 151.8 152.3 151.8c99.1 0 127.9-81.5 133.7-114.3H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
-        Sign in with Google
+        Sign in with Google (Admin)
       </Button>
     </Form>
   )

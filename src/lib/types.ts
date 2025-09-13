@@ -7,9 +7,10 @@ export enum UserRole {
 }
 
 export interface BaseUser {
-  id: string; // This is the Firestore document ID
+  id: string; // This is the Firestore document ID or mock ID
   uid?: string; // This would be the Firebase Auth UID
-  fullName: string;
+  name?: string; // name is used for mock data
+  fullName?: string; // fullName is used for firestore data
   email: string;
   role: UserRole;
   createdAt: any; // Firestore timestamp
@@ -47,10 +48,10 @@ export interface Appointment {
   patientName: string;
   doctorId: string;
   doctorName: string;
-  date: any; // Firestore timestamp
+  date: any; // Firestore timestamp or Date object
   reason: string;
   status: 'Scheduled' | 'Completed' | 'Cancelled';
-  createdAt: any; // Firestore timestamp
+  createdAt?: any; // Firestore timestamp
 }
 
 export interface Medicine {
