@@ -19,8 +19,8 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
 import { UserRole } from "@/lib/types"
+import { seedDatabase } from "@/lib/seed"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -77,10 +77,6 @@ export function LoginForm() {
         // Append IDs for roles that need it for data filtering
         if (roleInfo.role === UserRole.Doctor) {
             dashboardPath += `?doctorId=${roleInfo.id}`;
-        } else if (roleInfo.role === UserRole.Receptionist) {
-            dashboardPath += `?receptionistId=${roleInfo.id}`;
-        } else if (roleInfo.role === UserRole.Pharmacist) {
-            dashboardPath += `?pharmacistId=${roleInfo.id}`;
         }
 
         router.push(dashboardPath);
@@ -91,13 +87,34 @@ export function LoginForm() {
 
     } catch (error: any) {
       console.error("Login Error:", error);
+      let errorMessage = "An unexpected error occurred. Please try again.";
+      if (error.code === 'auth/invalid-credential' || error.message.includes("Account not found")) {
+        errorMessage = "Account not found. Please contact Admin.";
+      }
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message || "An unexpected error occurred.",
+        description: errorMessage,
       });
     }
   }
+  
+  const handleSeed = async () => {
+    try {
+      await seedDatabase();
+      toast({
+        title: "Database Seeded",
+        description: "Dummy staff has been added to Firestore.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Seeding Failed",
+        description: (error as Error).message,
+      });
+    }
+  };
+
 
   return (
     <Form {...form}>
@@ -131,9 +148,10 @@ export function LoginForm() {
         <Button type="submit" className="w-full">
           Log In
         </Button>
+        <Button type="button" variant="outline" className="w-full" onClick={handleSeed}>
+          Seed Dummy Staff
+        </Button>
       </form>
     </Form>
   )
 }
-
-    
