@@ -45,10 +45,14 @@ export default function StaffPage() {
     const [receptionists, setReceptionists] = useState<Partial<Receptionist>[]>([]);
     const [pharmacists, setPharmacists] = useState<Partial<Pharmacist>[]>([]);
 
-    useEffect(() => {
+    const updateStaffLists = () => {
         setDoctors(getDoctors());
         setReceptionists(getReceptionists());
         setPharmacists(getPharmacists());
+    };
+
+    useEffect(() => {
+        updateStaffLists();
     }, []);
     
     const loadingDoctors = false;
@@ -80,16 +84,10 @@ export default function StaffPage() {
             }
 
             // Use the mock data function to add the new staff member
-            const newStaffMember = addStaff(values);
+            addStaff(values);
 
             // Update the local state to reflect the change
-            if (newStaffMember.role === UserRole.Doctor) {
-                setDoctors(getDoctors());
-            } else if (newStaffMember.role === UserRole.Receptionist) {
-                setReceptionists(getReceptionists());
-            } else if (newStaffMember.role === UserRole.Pharmacist) {
-                setPharmacists(getPharmacists());
-            }
+            updateStaffLists();
             
             toast({
                 title: "Staff Member Added",
@@ -208,7 +206,7 @@ export default function StaffPage() {
                                 <TableRow>
                                     <TableHead>Full Name</TableHead>
                                     <TableHead>Role</TableHead>
-                                    <TableHead>Department/Email</TableHead>
+                                    <TableHead>Department</TableHead>
                                     <TableHead>Email</TableHead>
                                 </TableRow>
                             </TableHeader>

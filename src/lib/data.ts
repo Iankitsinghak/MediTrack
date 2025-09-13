@@ -1,29 +1,116 @@
 // In a real application, this would be a database connection.
-// For this prototype, we're using in-memory data to simulate a backend.
+// For this prototype, we're using in-memory data that persists in localStorage to simulate a backend.
 
 import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist, BaseUser } from "./types";
 import { add, format, subDays } from "date-fns";
 
-// Expanded dummy data for showcase purposes
-let doctors: Omit<Doctor, 'createdAt' | 'email' | 'password' | 'role'>[] = [
+const DOCTORS_KEY = 'medichain_doctors';
+const RECEPTIONISTS_KEY = 'medichain_receptionists';
+const PHARMACISTS_KEY = 'medichain_pharmacists';
+
+// Initial seed data if localStorage is empty
+const initialDoctors: Omit<Doctor, 'createdAt' | 'email' | 'password' | 'role' | 'uid' | 'fullName'>[] = [
   { id: "doc1", name: "Dr. Evelyn Reed", department: "Cardiology" },
   { id: "doc2", name: "Dr. Samuel Green", department: "Neurology" },
   { id: "doc3", name: "Dr. Isabella White", department: "Pediatrics" },
   { id: "doc4", name: "Dr. Mason King", department: "Orthopedics" },
 ];
 
-let receptionists: Omit<Receptionist, 'createdAt' | 'email' | 'password' | 'role'>[] = [
+const initialReceptionists: Omit<Receptionist, 'createdAt' | 'email' | 'password' | 'role' | 'uid' | 'fullName'>[] = [
     { id: "rec1", name: "Olivia Martin" },
     { id: "rec2", name: "Liam Harris" },
     { id: "rec3", name: "Sophia Clark" },
     { id: "rec4", name: "Jacob Lewis" },
 ];
 
-let pharmacists: Omit<Pharmacist, 'createdAt' | 'email' | 'password' | 'role'>[] = [
+const initialPharmacists: Omit<Pharmacist, 'createdAt' | 'email' | 'password' | 'role' | 'uid' | 'fullName'>[] = [
     { id: "phar1", name: "Noah Lewis" },
     { id: "phar2", name: "Ava Walker" },
 ];
 
+
+// --- Helper functions to interact with localStorage ---
+const getFromStorage = <T>(key: string, initialData: T[]): T[] => {
+    if (typeof window === 'undefined') return initialData;
+    try {
+        const item = window.localStorage.getItem(key);
+        if (item) {
+            return JSON.parse(item);
+        } else {
+            window.localStorage.setItem(key, JSON.stringify(initialData));
+            return initialData;
+        }
+    } catch (error) {
+        console.error(`Error reading from localStorage key “${key}”:`, error);
+        return initialData;
+    }
+};
+
+const saveToStorage = <T>(key: string, data: T[]) => {
+    if (typeof window === 'undefined') return;
+    try {
+        const serializedData = JSON.stringify(data);
+        window.localStorage.setItem(key, serializedData);
+    } catch (error) {
+        console.error(`Error writing to localStorage key “${key}”:`, error);
+    }
+};
+
+
+// --- Data Access & Mutation Functions for Staff ---
+
+export const getDoctors = (): Doctor[] => {
+    const doctors = getFromStorage(DOCTORS_KEY, initialDoctors);
+    return doctors.map(d => ({ ...d, fullName: d.name, role: UserRole.Doctor, email: `${d.name?.split(' ').join('.').toLowerCase()}@medichain.com` } as Doctor));
+}
+
+export const getReceptionists = (): Receptionist[] => {
+    const receptionists = getFromStorage(RECEPTIONISTS_KEY, initialReceptionists);
+    return receptionists.map(r => ({ ...r, fullName: r.name, role: UserRole.Receptionist, email: `${r.name?.split(' ').join('.').toLowerCase()}@medichain.com` } as Receptionist));
+}
+
+export const getPharmacists = (): Pharmacist[] => {
+    const pharmacists = getFromStorage(PHARMACISTS_KEY, initialPharmacists);
+    return pharmacists.map(p => ({ ...p, fullName: p.name, role: UserRole.Pharmacist, email: `${p.name?.split(' ').join('.').toLowerCase()}@medichain.com` } as Pharmacist));
+}
+
+export const addStaff = (staffData: { fullName: string; email: string; role: UserRole; department?: string; }) => {
+    let newStaff: any;
+    switch (staffData.role) {
+        case UserRole.Doctor:
+            const doctors = getFromStorage<Omit<Doctor, 'role'>>(DOCTORS_KEY, initialDoctors);
+            newStaff = {
+                id: `doc${doctors.length + 1}`,
+                name: staffData.fullName,
+                department: staffData.department || 'General',
+            };
+            doctors.push(newStaff);
+            saveToStorage(DOCTORS_KEY, doctors);
+            return { ...newStaff, ...staffData };
+        case UserRole.Receptionist:
+            const receptionists = getFromStorage<Omit<Receptionist, 'role'>>(RECEPTIONISTS_KEY, initialReceptionists);
+            newStaff = {
+                id: `rec${receptionists.length + 1}`,
+                name: staffData.fullName,
+            };
+            receptionists.push(newStaff);
+            saveToStorage(RECEPTIONISTS_KEY, receptionists);
+            return { ...newStaff, ...staffData };
+        case UserRole.Pharmacist:
+             const pharmacists = getFromStorage<Omit<Pharmacist, 'role'>>(PHARMACISTS_KEY, initialPharmacists);
+             newStaff = {
+                id: `phar${pharmacists.length + 1}`,
+                name: staffData.fullName,
+            };
+            pharmacists.push(newStaff);
+            saveToStorage(PHARMACISTS_KEY, pharmacists);
+            return { ...newStaff, ...staffData };
+        default:
+            throw new Error("Invalid role");
+    }
+};
+
+// --- Other Mock Data (unchanged) ---
 
 const availableBeds = [
   { id: "bed101", number: "101", isOccupied: false },
@@ -76,50 +163,13 @@ const initialMedicationOrders: MedicationOrder[] = [
 ];
 
 
-// In-memory data stores
+// In-memory data stores that are NOT persisted to localStorage
 let patients: Patient[] = [...initialPatients];
 let appointments: any[] = [...initialAppointments];
 let suppliers: Supplier[] = [...initialSuppliers];
 let medicines: Medicine[] = [...initialMedicines];
 let prescriptions: Prescription[] = [...initialPrescriptions];
 let medicationOrders: MedicationOrder[] = [...initialMedicationOrders];
-
-
-// --- Data Access & Mutation Functions ---
-
-export const getDoctors = () => doctors.map(d => ({ ...d, role: UserRole.Doctor, email: `${d.name.split(' ').join('.').toLowerCase()}@medichain.com`}));
-export const getReceptionists = () => receptionists.map(r => ({ ...r, role: UserRole.Receptionist, email: `${r.name.split(' ').join('.').toLowerCase()}@medichain.com`}));
-export const getPharmacists = () => pharmacists.map(p => ({ ...p, role: UserRole.Pharmacist, email: `${p.name.split(' ').join('.').toLowerCase()}@medichain.com`}));
-
-export const addStaff = (staffData: { fullName: string; email: string; role: UserRole; department?: string; }) => {
-    let newStaff: any;
-    switch (staffData.role) {
-        case UserRole.Doctor:
-            newStaff = {
-                id: `doc${doctors.length + 1}`,
-                name: staffData.fullName,
-                department: staffData.department || 'General',
-            };
-            doctors.push(newStaff);
-            return { ...newStaff, ...staffData };
-        case UserRole.Receptionist:
-            newStaff = {
-                id: `rec${receptionists.length + 1}`,
-                name: staffData.fullName,
-            };
-            receptionists.push(newStaff);
-            return { ...newStaff, ...staffData };
-        case UserRole.Pharmacist:
-             newStaff = {
-                id: `phar${pharmacists.length + 1}`,
-                name: staffData.fullName,
-            };
-            pharmacists.push(newStaff);
-            return { ...newStaff, ...staffData };
-        default:
-            throw new Error("Invalid role");
-    }
-};
 
 export const getAvailableBeds = () => availableBeds.filter(bed => !bed.isOccupied);
 export const getPatients = () => patients;

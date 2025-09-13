@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { format, startOfDay } from "date-fns"
-import { getPatients, getDoctors, scheduleAppointment } from "@/lib/data"
+import { getPatients, getDoctors, scheduleAppointment, getAppointments } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -70,13 +70,13 @@ export default function AppointmentsPage() {
         const uniqueAppointments = Array.from(new Map(combinedAppointments.map(item => [item.id, item])).values());
         
         const filtered = uniqueAppointments.filter(appt => {
-            const apptDate = appt.date.toDate ? appt.date.toDate() : new Date(appt.date);
+            const apptDate = appt.date?.toDate ? appt.date.toDate() : new Date(appt.date);
             return startOfDay(apptDate).getTime() === startOfDay(date).getTime()
         });
         
         return filtered.sort((a, b) => {
-             const dateA = a.date.toDate ? a.date.toDate() : new Date(a.date);
-             const dateB = b.date.toDate ? b.date.toDate() : new Date(b.date);
+             const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+             const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
              return dateA.getTime() - dateB.getTime()
         });
     }, [date, localAppointments, firestoreAppointments]);
@@ -99,7 +99,7 @@ export default function AppointmentsPage() {
         appointmentDateTime.setHours(hours, minutes);
 
         try {
-            const newAppointment = scheduleAppointment({
+            scheduleAppointment({
                 patientId: values.patientId,
                 doctorId: values.doctorId,
                 date: appointmentDateTime,
@@ -166,7 +166,7 @@ export default function AppointmentsPage() {
                                         <p className="text-sm text-muted-foreground">{appt.reason}</p>
                                     </div>
                                     <div className="ml-auto text-right">
-                                        <p className="font-medium">{format(appt.date.toDate ? appt.date.toDate() : new Date(appt.date), "p")}</p>
+                                        <p className="font-medium">{format(appt.date?.toDate ? appt.date.toDate() : new Date(appt.date), "p")}</p>
                                         <p className="text-sm text-muted-foreground">{appt.doctorName}</p>
                                     </div>
                                 </div>

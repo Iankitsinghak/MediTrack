@@ -35,12 +35,6 @@ export function LoginForm() {
   const [receptionists, setReceptionists] = useState<Partial<Receptionist>[]>([])
   const [pharmacists, setPharmacists] = useState<Partial<Pharmacist>[]>([])
 
-  useEffect(() => {
-    setDoctors(getDoctors())
-    setReceptionists(getReceptionists())
-    setPharmacists(getPharmacists())
-  }, [])
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -52,7 +46,7 @@ export function LoginForm() {
 
   const role = form.watch("role")
 
-  // When role changes, refetch the data to ensure it's up-to-date
+  // When role changes, or component mounts, refetch the data to ensure it's up-to-date
   useEffect(() => {
     setDoctors(getDoctors())
     setReceptionists(getReceptionists())
