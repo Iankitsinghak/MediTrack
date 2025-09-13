@@ -18,6 +18,11 @@ export function middleware(request: NextRequest) {
   const userRole = getUserRole(request);
   const { pathname } = request.nextUrl;
 
+  // Allow public routes
+  if (['/', '/login', '/signup'].includes(pathname)) {
+    return NextResponse.next();
+  }
+
   // If there's a user role, verify they are accessing their own dashboard
   if (userRole) {
     const isAllowed = pathname.startsWith(`/${userRole}`);
@@ -27,15 +32,24 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // If no role and not a public route, redirect to login
+  if (!userRole && !['/', '/login', '/signup'].some(p => pathname.startsWith(p))) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    '/admin/:path*',
-    '/doctor/:path*',
-    '/receptionist/:path*',
-    '/pharmacist/:path*',
-    '/dashboard',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }
