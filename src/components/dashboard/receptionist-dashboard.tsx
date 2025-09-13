@@ -1,13 +1,12 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { BookUser, CalendarCheck, UserPlus, Users } from "lucide-react"
 import { StatCard } from "./stat-card"
 import type { StatCardData, Appointment } from "@/lib/types"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 
 const receptionistStats: StatCardData[] = [
   {
@@ -35,7 +34,7 @@ const receptionistStats: StatCardData[] = [
   },
 ]
 
-const upcomingAppointments: Partial<Appointment>[] = [
+const upcomingAppointmentsData: Partial<Appointment>[] = [
     { patientName: "Alice Johnson", doctorName: "Dr. Smith", date: new Date(new Date().setHours(10, 0, 0, 0)), reason: "Annual Checkup" },
     { patientName: "Bob Williams", doctorName: "Dr. Evans", date: new Date(new Date().setHours(10, 30, 0, 0)), reason: "Follow-up" },
     { patientName: "Charlie Brown", doctorName: "Dr. Patel", date: new Date(new Date().setHours(11, 0, 0, 0)), reason: "Consultation" },
@@ -43,7 +42,12 @@ const upcomingAppointments: Partial<Appointment>[] = [
 ];
 
 export function ReceptionistDashboard() {
-  const [date, setDate] = React.useState<Date | undefined>(new Date())
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <>
@@ -73,7 +77,7 @@ export function ReceptionistDashboard() {
             <CardDescription>Appointments scheduled for today.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {upcomingAppointments.map((appt, index) => (
+            {upcomingAppointmentsData.map((appt, index) => (
                  <div key={index} className="flex items-center gap-4">
                     <Avatar className="h-9 w-9">
                         <AvatarImage src={`https://picsum.photos/seed/patient${index}/40/40`} alt="Avatar" />
@@ -84,7 +88,7 @@ export function ReceptionistDashboard() {
                         <p className="text-sm text-muted-foreground">{appt.reason}</p>
                     </div>
                     <div className="ml-auto text-right">
-                        <p className="font-medium">{appt.date?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="font-medium">{isClient ? appt.date?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}</p>
                         <p className="text-sm text-muted-foreground">{appt.doctorName}</p>
                     </div>
                  </div>
