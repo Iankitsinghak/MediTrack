@@ -1,4 +1,4 @@
-import { SidebarNav } from "@/components/dashboard/sidebar-nav"
+import { SidebarNav } from "@/components/dashboard/admin/sidebar-nav"
 import {
   SidebarProvider,
   Sidebar,
@@ -19,7 +19,7 @@ import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 
-export default function DashboardLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
@@ -48,8 +48,8 @@ export default function DashboardLayout({
                 className="overflow-hidden rounded-full"
               >
                 <Avatar>
-                  <AvatarImage src="https://picsum.photos/seed/user-avatar/40/40" alt="User avatar" />
-                  <AvatarFallback>U</AvatarFallback>
+                  <AvatarImage src="https://picsum.photos/seed/admin-avatar/40/40" alt="Admin avatar" />
+                  <AvatarFallback>A</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

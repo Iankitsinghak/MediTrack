@@ -54,12 +54,13 @@ export function SignupForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values)
     // In a real app, you'd call Firebase auth and Firestore to create a user here
-    router.push("/dashboard")
+    const dashboardPath = `/${values.role.toLowerCase()}/dashboard`
+    router.push(dashboardPath)
   }
 
   function onGoogleSignIn() {
     // In a real app, you'd call Firebase Google OAuth provider here
-    router.push("/dashboard")
+    router.push("/doctor/dashboard")
   }
 
   return (

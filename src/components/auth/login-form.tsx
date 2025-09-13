@@ -16,10 +16,13 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { UserRole } from "@/lib/types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  role: z.nativeEnum(UserRole),
 })
 
 export function LoginForm() {
@@ -29,18 +32,21 @@ export function LoginForm() {
     defaultValues: {
       email: "",
       password: "",
+      role: UserRole.Doctor,
     },
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values)
-    // In a real app, you'd call Firebase auth here
-    router.push("/dashboard")
+    // In a real app, you'd call Firebase auth here and get the role from Firestore
+    const dashboardPath = `/${values.role.toLowerCase()}/dashboard`
+    router.push(dashboardPath)
   }
   
   function onGoogleSignIn() {
     // In a real app, you'd call Firebase Google OAuth provider here
-    router.push("/dashboard")
+    // For now, we'll default to the doctor dashboard
+    router.push("/doctor/dashboard")
   }
 
   return (
@@ -68,6 +74,28 @@ export function LoginForm() {
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Role (for simulation)</FormLabel>
+               <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role to log in as" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Object.values(UserRole).map(role => (
+                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
