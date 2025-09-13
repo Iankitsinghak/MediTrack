@@ -12,14 +12,14 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+          <CardDescription>Select your role and name to log in.</CardDescription>
         </CardHeader>
         <CardContent>
           <LoginForm />
           <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{" "}
+            Are you an Admin?{" "}
             <Link href="/signup" className="underline text-primary">
-              Sign up
+              Sign up here
             </Link>
           </div>
         </CardContent>
@@ -27,3 +27,5 @@ export default function LoginPage() {
     </div>
   )
 }
+
+    
