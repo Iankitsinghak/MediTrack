@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { UserRole, type Doctor } from "@/lib/types"
+import { UserRole, type Doctor, type Receptionist, type Pharmacist } from "@/lib/types"
 import { useFirestore } from "@/hooks/use-firestore"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 import React from "react"
@@ -25,12 +25,14 @@ const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   role: z.nativeEnum(UserRole),
-  doctorId: z.string().optional(),
+  staffId: z.string().optional(),
 })
 
 export function LoginForm() {
   const router = useRouter()
   const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
+  const { data: receptionists, loading: loadingReceptionists } = useFirestore<Receptionist>('receptionists');
+  const { data: pharmacists, loading: loadingPharmacists } = useFirestore<Pharmacist>('pharmacists');
 
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -48,12 +50,27 @@ export function LoginForm() {
     console.log(values)
     let dashboardPath = `/${values.role.toLowerCase()}/dashboard`
 
+    // In a real app, you'd perform authentication here against the email and password.
+    // For this prototype, we're just checking that a staff member is selected.
+
     if (values.role === UserRole.Doctor) {
-        if (!values.doctorId) {
-            form.setError("doctorId", { type: "manual", message: "Please select a doctor." });
+        if (!values.staffId) {
+            form.setError("staffId", { type: "manual", message: "Please select a doctor." });
             return;
         }
-        dashboardPath += `?doctorId=${values.doctorId}`;
+        dashboardPath += `?doctorId=${values.staffId}`;
+    } else if (values.role === UserRole.Receptionist) {
+         if (!values.staffId) {
+            form.setError("staffId", { type: "manual", message: "Please select a receptionist." });
+            return;
+        }
+        dashboardPath += `?receptionistId=${values.staffId}`;
+    } else if (values.role === UserRole.Pharmacist) {
+         if (!values.staffId) {
+            form.setError("staffId", { type: "manual", message: "Please select a pharmacist." });
+            return;
+        }
+        dashboardPath += `?pharmacistId=${values.staffId}`;
     }
 
     router.push(dashboardPath)
@@ -66,6 +83,15 @@ export function LoginForm() {
       router.push(`/doctor/dashboard?doctorId=${doctors[0].id}`)
     }
   }
+  
+  const staffByRole = {
+    [UserRole.Doctor]: { data: doctors, loading: loadingDoctors, placeholder: "Select a doctor" },
+    [UserRole.Receptionist]: { data: receptionists, loading: loadingReceptionists, placeholder: "Select a receptionist" },
+    [UserRole.Pharmacist]: { data: pharmacists, loading: loadingPharmacists, placeholder: "Select a pharmacist" },
+    [UserRole.Admin]: { data: [], loading: false, placeholder: "" }
+  }
+
+  const currentStaff = staffByRole[role];
 
   return (
     <Form {...form}>
@@ -102,7 +128,10 @@ export function LoginForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role (for simulation)</FormLabel>
-               <Select onValueChange={field.onChange} defaultValue={field.value}>
+               <Select onValueChange={(value) => {
+                   field.onChange(value);
+                   form.setValue('staffId', undefined); // Reset staffId when role changes
+               }} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role to log in as" />
@@ -118,25 +147,25 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        {role === UserRole.Doctor && (
+        {role !== UserRole.Admin && (
            <FormField
               control={form.control}
-              name="doctorId"
+              name="staffId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Select Doctor</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormLabel>Select Staff Member</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={loadingDoctors ? "Loading doctors..." : "Select a doctor to log in as"} />
+                        <SelectValue placeholder={currentStaff.loading ? `Loading ${role.toLowerCase()}s...` : currentStaff.placeholder} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {loadingDoctors ? (
+                      {currentStaff.loading ? (
                         <SelectItem value="loading" disabled>Loading...</SelectItem>
                       ) : (
-                        doctors.map(doctor => (
-                          <SelectItem key={doctor.id} value={doctor.id}>{doctor.fullName}</SelectItem>
+                        currentStaff.data?.map(staff => (
+                          <SelectItem key={staff.id} value={staff.id}>{staff.fullName}</SelectItem>
                         ))
                       )}
                     </SelectContent>

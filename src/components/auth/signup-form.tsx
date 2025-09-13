@@ -29,16 +29,8 @@ const formSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
-  role: z.nativeEnum(UserRole),
-  department: z.string().optional(),
-}).refine(data => {
-  if (data.role === UserRole.Doctor) {
-    return !!data.department && data.department.length > 0;
-  }
-  return true;
-}, {
-  message: "Department is required for doctors.",
-  path: ["department"],
+  // Only Admins can be created through public signup now.
+  role: z.literal(UserRole.Admin),
 });
 
 export function SignupForm() {
@@ -50,32 +42,30 @@ export function SignupForm() {
       fullName: "",
       email: "",
       password: "",
-      role: UserRole.Receptionist,
-      department: "",
+      role: UserRole.Admin,
     },
   })
 
-  const role = form.watch("role")
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         const user = userCredential.user;
 
-        const collectionName = `${values.role.toLowerCase()}s`;
+        // Admins are stored in the 'admins' collection.
+        const collectionName = `admins`;
         
         await setDoc(doc(db, collectionName, user.uid), {
             uid: user.uid,
             fullName: values.fullName,
             email: values.email,
             role: values.role,
-            department: values.department || null,
             createdAt: serverTimestamp()
         });
 
         toast({
             title: "Account Created",
-            description: "Your account has been successfully created.",
+            description: "Your admin account has been successfully created.",
         });
 
         const dashboardPath = `/${values.role.toLowerCase()}/dashboard`
@@ -92,11 +82,8 @@ export function SignupForm() {
 
   function onGoogleSignIn() {
     // In a real app, you'd call Firebase Google OAuth provider here
-    router.push(`/doctor/dashboard?doctorId=doc1`)
+    router.push(`/admin/dashboard`)
   }
-
-  const availableRoles = Object.values(UserRole).filter(r => r !== UserRole.Doctor);
-
 
   return (
     <Form {...form}>
@@ -140,45 +127,12 @@ export function SignupForm() {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Role</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {availableRoles.map(role => (
-                    <SelectItem key={role} value={role}>{role}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {role === UserRole.Doctor && (
-          <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Department</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Cardiology" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
+         <p className="text-sm text-muted-foreground pt-2">
+            You are signing up as an Admin. Other roles (Doctor, Receptionist, Pharmacist) must be created by an Admin from the dashboard.
+        </p>
+        
         <Button type="submit" className="w-full">
-          Create Account
+          Create Admin Account
         </Button>
       </form>
        <div className="relative my-6">

@@ -9,55 +9,85 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useFirestore } from "@/hooks/use-firestore";
-import type { Doctor } from "@/lib/types";
+import type { Doctor, Receptionist, Pharmacist } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserPlus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserRole } from "@/lib/types";
 
-const addDoctorSchema = z.object({
+
+const addStaffSchema = z.object({
   fullName: z.string().min(3, "Full name is required"),
-  department: z.string().min(3, "Department is required"),
   email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters."),
+  role: z.nativeEnum(UserRole),
+  department: z.string().optional(),
+}).refine(data => {
+    if (data.role === UserRole.Doctor) {
+        return !!data.department && data.department.length > 2;
+    }
+    return true;
+}, {
+    message: "Department is required for doctors.",
+    path: ["department"],
 });
 
 
 export default function StaffPage() {
     const { toast } = useToast();
     const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
+    const { data: receptionists, loading: loadingReceptionists } = useFirestore<Receptionist>('receptionists');
+    const { data: pharmacists, loading: loadingPharmacists } = useFirestore<Pharmacist>('pharmacists');
 
-    const form = useForm<z.infer<typeof addDoctorSchema>>({
-        resolver: zodResolver(addDoctorSchema),
+    const form = useForm<z.infer<typeof addStaffSchema>>({
+        resolver: zodResolver(addStaffSchema),
         defaultValues: {
             fullName: "",
-            department: "",
             email: "",
+            password: "",
+            role: UserRole.Doctor,
+            department: ""
         }
     });
 
-    async function onSubmit(values: z.infer<typeof addDoctorSchema>) {
+    const role = form.watch("role");
+
+    async function onSubmit(values: z.infer<typeof addStaffSchema>) {
         try {
-            await addDoc(collection(db, "doctors"), {
+            const collectionName = `${values.role.toLowerCase()}s`;
+            
+            const staffData: any = {
                 fullName: values.fullName,
-                department: values.department,
                 email: values.email,
-                role: "Doctor",
+                // In a real app, you would hash this password before storing it.
+                // For this prototype, we're storing it as-is for simplicity.
+                password: values.password,
+                role: values.role,
                 createdAt: serverTimestamp(),
-            });
+            };
+
+            if (values.role === UserRole.Doctor) {
+                staffData.department = values.department;
+            }
+
+            await addDoc(collection(db, collectionName), staffData);
+            
             toast({
-                title: "Doctor Added",
-                description: `${values.fullName} has been added to the staff.`,
+                title: "Staff Member Added",
+                description: `${values.fullName} has been added as a ${values.role}.`,
             });
             form.reset();
         } catch (error) {
              toast({
                 variant: "destructive",
-                title: "Failed to add doctor",
+                title: "Failed to add staff member",
                 description: (error as Error).message,
             });
-            console.error("Error adding doctor:", error);
+            console.error("Error adding staff:", error);
         }
     }
 
@@ -68,31 +98,20 @@ export default function StaffPage() {
             
             <Card>
                 <CardHeader>
-                    <CardTitle>Add New Doctor</CardTitle>
-                    <CardDescription>Add a new doctor to the system. They will be available for appointments immediately.</CardDescription>
+                    <CardTitle>Add New Staff Member</CardTitle>
+                    <CardDescription>Add a new Doctor, Receptionist, or Pharmacist to the system.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <div className="grid md:grid-cols-3 gap-6">
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <FormField
                                     control={form.control}
                                     name="fullName"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Full Name</FormLabel>
-                                            <FormControl><Input placeholder="Dr. John Doe" {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="department"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Department</FormLabel>
-                                            <FormControl><Input placeholder="e.g. Cardiology" {...field} /></FormControl>
+                                            <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -103,14 +122,58 @@ export default function StaffPage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Email</FormLabel>
-                                            <FormControl><Input type="email" placeholder="doctor@example.com" {...field} /></FormControl>
+                                            <FormControl><Input type="email" placeholder="staff@example.com" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Password</FormLabel>
+                                            <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="role"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Role</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {Object.values(UserRole).filter(r => r !== UserRole.Admin).map(r => (
+                                                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                               {role === UserRole.Doctor && (
+                                 <FormField
+                                    control={form.control}
+                                    name="department"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Department</FormLabel>
+                                            <FormControl><Input placeholder="e.g. Cardiology" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                               )}
                             </div>
                             <div className="flex justify-end">
-                                <Button type="submit"><UserPlus className="mr-2 h-4 w-4" /> Add Doctor</Button>
+                                <Button type="submit"><UserPlus className="mr-2 h-4 w-4" /> Add Staff Member</Button>
                             </div>
                         </form>
                     </Form>
@@ -122,7 +185,7 @@ export default function StaffPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Staff List</CardTitle>
-                    <CardDescription>List of all doctors currently in the system.</CardDescription>
+                    <CardDescription>List of all staff currently in the system.</CardDescription>
                 </CardHeader>
                 <CardContent>
                      <div className="rounded-md border">
@@ -130,6 +193,7 @@ export default function StaffPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Full Name</TableHead>
+                                    <TableHead>Role</TableHead>
                                     <TableHead>Department</TableHead>
                                     <TableHead>Email</TableHead>
                                 </TableRow>
@@ -137,32 +201,56 @@ export default function StaffPage() {
                             <TableBody>
                                 {loadingDoctors ? (
                                     Array.from({ length: 3 }).map((_, i) => (
-                                        <TableRow key={i}>
+                                        <TableRow key={`doc-skel-${i}`}>
                                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                                         </TableRow>
                                     ))
-                                ) : doctors.length > 0 ? (
-                                    doctors.map((doctor) => (
-                                        <TableRow key={doctor.id}>
-                                            <TableCell className="font-medium">{doctor.fullName}</TableCell>
-                                            <TableCell>{doctor.department}</TableCell>
-                                            <TableCell>{doctor.email}</TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
+                                ) : doctors.map((doctor) => (
+                                    <TableRow key={doctor.id}>
+                                        <TableCell className="font-medium">{doctor.fullName}</TableCell>
+                                        <TableCell>{doctor.role}</TableCell>
+                                        <TableCell>{doctor.department}</TableCell>
+                                        <TableCell>{doctor.email}</TableCell>
+                                    </TableRow>
+                                ))}
+                                {loadingReceptionists ? (
                                     <TableRow>
-                                        <TableCell colSpan={3} className="h-24 text-center">
-                                            No doctors found.
+                                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                                        <TableCell>N/A</TableCell>
+                                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                    </TableRow>
+                                ) : receptionists.map((rec) => (
+                                    <TableRow key={rec.id}>
+                                        <TableCell className="font-medium">{rec.fullName}</TableCell>
+                                        <TableCell>{rec.role}</TableCell>
+                                        <TableCell>N/A</TableCell>
+                                        <TableCell>{rec.email}</TableCell>
+                                    </TableRow>
+                                ))}
+                                {loadingPharmacists ? (
+                                    <TableRow>
+                                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                                        <TableCell>N/A</TableCell>
+                                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                    </TableRow>
+                                ) : pharmacists.map((phar) => (
+                                    <TableRow key={phar.id}>
+                                        <TableCell className="font-medium">{phar.fullName}</TableCell>
+                                        <TableCell>{phar.role}</TableCell>
+                                        <TableCell>N/A</TableCell>
+                                        <TableCell>{phar.email}</TableCell>
+                                    </TableRow>
+                                ))}
+                                {!loadingDoctors && !loadingReceptionists && !loadingPharmacists && doctors.length === 0 && receptionists.length === 0 && pharmacists.length === 0 && (
+                                     <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">
+                                            No staff found. Add one above to get started.
                                         </TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    )
-}

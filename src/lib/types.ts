@@ -1,3 +1,4 @@
+
 export enum UserRole {
   Admin = 'Admin',
   Doctor = 'Doctor',
@@ -5,22 +6,30 @@ export enum UserRole {
   Pharmacist = 'Pharmacist',
 }
 
-export interface User {
-  id: string;
+export interface BaseUser {
+  id: string; // This is the Firestore document ID
+  uid?: string; // This would be the Firebase Auth UID
   fullName: string;
   email: string;
   role: UserRole;
-  department?: string; // Only for Doctors
+  createdAt: any; // Firestore timestamp
 }
 
-export interface Doctor {
-  id: string; // This is the Firestore document ID
-  fullName: string;
-  email: string;
+export interface Doctor extends BaseUser {
   role: UserRole.Doctor;
   department: string;
-  createdAt: any; // Firestore timestamp
-  uid?: string; // This would be the Firebase Auth UID if you were linking them
+}
+
+export interface Admin extends BaseUser {
+  role: UserRole.Admin;
+}
+
+export interface Receptionist extends BaseUser {
+  role: UserRole.Receptionist;
+}
+
+export interface Pharmacist extends BaseUser {
+  role: UserRole.Pharmacist;
 }
 
 
@@ -38,24 +47,25 @@ export interface Appointment {
   patientName: string;
   doctorId: string;
   doctorName: string;
-  date: Date;
+  date: any; // Firestore timestamp
   reason: string;
   status: 'Scheduled' | 'Completed' | 'Cancelled';
+  createdAt: any; // Firestore timestamp
 }
 
 export interface Medicine {
-  id: string;
-  name: string;
-  stock: number;
-  lowStockThreshold: number;
-  supplierId: string;
+    id: string;
+    name: string;
+    stock: number;
+    lowStockThreshold: number;
+    supplierId: string;
 }
 
 export interface Supplier {
-  id:string;
-  name: string;
-  contactPerson: string;
-  phone: string;
+    id: string;
+    name: string;
+    contactPerson: string;
+    phone: string;
 }
 
 export interface Prescription {
@@ -77,10 +87,10 @@ export interface MedicationOrder {
     status: 'Pending' | 'Received';
 }
 
-export interface StatCardData {
+export type StatCardData = {
   title: string;
   value: string;
   icon: React.ElementType;
   change?: string;
-  changeType?: 'increase' | 'decrease';
-}
+  changeType?: "increase" | "decrease";
+};
