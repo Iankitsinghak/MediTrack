@@ -18,7 +18,7 @@ import { useFirestore } from "@/hooks/use-firestore";
 import type { Doctor, Receptionist, Pharmacist } from "@/lib/types";
 import { auth, db } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, setDoc, doc } from "firebase/firestore";
 
 
 const addStaffSchema = z.object({
@@ -65,8 +65,6 @@ export default function StaffPage() {
                 return;
             }
 
-            // This is a temporary auth instance to create the user, then we sign out.
-            // In a real-world scenario, you might use a server-side admin SDK for this.
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
@@ -84,7 +82,8 @@ export default function StaffPage() {
                 staffData.department = values.department;
             }
 
-            await addDoc(collection(db, collectionName), staffData);
+            // Use the user's UID as the document ID for a direct link
+            await setDoc(doc(db, collectionName, user.uid), staffData);
             
             toast({
                 title: "Staff Member Added",
@@ -270,3 +269,5 @@ export default function StaffPage() {
         </div>
     )
 }
+
+    

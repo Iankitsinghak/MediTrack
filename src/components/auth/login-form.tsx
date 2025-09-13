@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
 import { signInWithEmailAndPassword } from "firebase/auth"
-import { collection, getDocs, query, where } from "firebase/firestore"
+import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { useToast } from "@/hooks/use-toast"
 
@@ -36,11 +36,10 @@ async function getUserRoleByUid(uid: string): Promise<{ role: UserRole; id: stri
   ];
 
   for (const { name, role } of collections) {
-    const q = query(collection(db, name), where("uid", "==", uid));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      const doc = querySnapshot.docs[0];
-      return { role, id: doc.id };
+    const docRef = doc(db, name, uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { role, id: docSnap.id };
     }
   }
 
@@ -100,12 +99,6 @@ export function LoginForm() {
     }
   }
 
-  function onGoogleSignIn() {
-    // This can be enhanced with Firebase Google Auth Provider
-    // For now, it simulates an Admin login for quick access
-    router.push(`/admin/dashboard`)
-  }
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -139,16 +132,8 @@ export function LoginForm() {
           Log In
         </Button>
       </form>
-      <div className="relative my-6">
-        <Separator />
-        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-sm text-muted-foreground">
-          OR
-        </span>
-      </div>
-      <Button variant="outline" className="w-full" onClick={onGoogleSignIn}>
-        <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-76.2 64.5C308.6 106.5 280.4 96 248 96c-84.3 0-152.3 67.8-152.3 151.8s68 151.8 152.3 151.8c99.1 0 127.9-81.5 133.7-114.3H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
-        Sign in with Google (Admin)
-      </Button>
     </Form>
   )
 }
+
+    
