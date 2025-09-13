@@ -1,25 +1,32 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { format } from "date-fns"
-import { getAppointments, getPatients } from "@/lib/data"
+import { getAppointments } from "@/lib/data"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Calendar as CalendarIcon, Check, Clock } from "lucide-react"
+import { Clock, Check } from "lucide-react"
 
 // For this prototype, we'll hardcode the logged-in doctor's ID.
 // In a real app, this would come from an authentication context.
 const LOGGED_IN_DOCTOR_ID = "doc1";
 
 export default function AppointmentsPage() {
-    const allAppointments = getAppointments();
+    // We need to manage appointments in state to reflect changes
+    const [appointments, setAppointments] = useState(getAppointments());
+
+    // This effect can be used to refetch data in a real app.
+    // For our prototype, it just ensures we have the latest from our mock data store.
+    useEffect(() => {
+        setAppointments(getAppointments());
+    }, []);
+
 
     const doctorAppointments = useMemo(() => {
-        return allAppointments
+        return appointments
             .filter(appt => appt.doctorId === LOGGED_IN_DOCTOR_ID)
             .sort((a, b) => a.date.getTime() - b.date.getTime());
-    }, [allAppointments]);
+    }, [appointments]);
 
     const upcomingAppointments = doctorAppointments.filter(a => a.status === 'Scheduled');
     const completedAppointments = doctorAppointments.filter(a => a.status === 'Completed');

@@ -2,23 +2,30 @@
 
 import { useState, useMemo } from "react"
 import { getPatients } from "@/lib/data"
-import type { Patient } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Search } from "lucide-react"
 
+// For this prototype, we'll hardcode the logged-in doctor's ID.
+// In a real app, this would come from an authentication context.
+const LOGGED_IN_DOCTOR_ID = "doc1";
+
 export default function PatientsPage() {
     const allPatients = getPatients();
     const [searchTerm, setSearchTerm] = useState("");
 
+    const doctorPatients = useMemo(() => {
+        return allPatients.filter(patient => patient.doctorId === LOGGED_IN_DOCTOR_ID);
+    }, [allPatients]);
+
     const filteredPatients = useMemo(() => {
-        if (!searchTerm) return allPatients;
-        return allPatients.filter(patient => 
+        if (!searchTerm) return doctorPatients;
+        return doctorPatients.filter(patient => 
             patient.fullName.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [searchTerm, allPatients]);
+    }, [searchTerm, doctorPatients]);
 
     return (
         <div className="flex-1 space-y-4">
@@ -26,7 +33,9 @@ export default function PatientsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Your Patients</CardTitle>
-                    <CardDescription>View and manage your patients.</CardDescription>
+                    <CardDescription>
+                        Showing {filteredPatients.length} of your {doctorPatients.length} assigned patients.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                    <div className="mb-4 relative">
