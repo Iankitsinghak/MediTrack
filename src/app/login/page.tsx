@@ -12,12 +12,12 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
-          <CardDescription>Select your role and name to log in.</CardDescription>
+          <CardDescription>Sign in with your Google account to continue.</CardDescription>
         </CardHeader>
         <CardContent>
           <LoginForm />
           <div className="mt-4 text-center text-sm">
-            Are you an Admin?{" "}
+            Need an account?{" "}
             <Link href="/signup" className="underline text-primary">
               Sign up here
             </Link>
@@ -27,5 +27,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
-    

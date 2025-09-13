@@ -16,15 +16,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserRole } from "@/lib/types";
 import { useFirestore } from "@/hooks/use-firestore";
 import type { Doctor, Receptionist, Pharmacist } from "@/lib/types";
-import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, setDoc, doc } from "firebase/firestore";
 
 
 const addStaffSchema = z.object({
   fullName: z.string().min(3, "Full name is required"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters."),
   role: z.nativeEnum(UserRole),
   department: z.string().optional(),
 }).refine(data => {
@@ -44,13 +42,13 @@ export default function StaffPage() {
     const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
     const { data: receptionists, loading: loadingReceptionists } = useFirestore<Receptionist>('receptionists');
     const { data: pharmacists, loading: loadingPharmacists } = useFirestore<Pharmacist>('pharmacists');
+    const { data: admins, loading: loadingAdmins } = useFirestore<any>('admins');
 
     const form = useForm<z.infer<typeof addStaffSchema>>({
         resolver: zodResolver(addStaffSchema),
         defaultValues: {
             fullName: "",
             email: "",
-            password: "",
             role: UserRole.Doctor,
             department: ""
         }
@@ -60,18 +58,11 @@ export default function StaffPage() {
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
         try {
-            if (values.role === UserRole.Admin) {
-                toast({ variant: "destructive", title: "Cannot add an Admin role."});
-                return;
-            }
-
-            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-            const user = userCredential.user;
-
+            // Since we're using Google Auth, we don't create auth users here anymore.
+            // We are just adding user profiles to Firestore. The user will need to sign up/in with Google.
             const collectionName = `${values.role.toLowerCase()}s`;
             
             const staffData: any = {
-                uid: user.uid,
                 fullName: values.fullName,
                 email: values.email,
                 role: values.role,
@@ -82,12 +73,13 @@ export default function StaffPage() {
                 staffData.department = values.department;
             }
 
-            // Use the user's UID as the document ID for a direct link
-            await setDoc(doc(db, collectionName, user.uid), staffData);
+            // We'll add the doc and let Firestore generate the ID.
+            // We'll need a way to associate this with a Google Auth user later.
+            await addDoc(collection(db, collectionName), staffData);
             
             toast({
-                title: "Staff Member Added",
-                description: `${values.fullName} has been added to the system.`,
+                title: "Staff Profile Added",
+                description: `${values.fullName} has been added. They will need to log in with their Google account (${values.email}).`,
             });
             form.reset();
         } catch (error) {
@@ -107,7 +99,7 @@ export default function StaffPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Add New Staff Member</CardTitle>
-                    <CardDescription>Add a new Doctor, Receptionist, or Pharmacist to the system.</CardDescription>
+                    <CardDescription>Add a new Doctor, Receptionist, or Pharmacist to the system. They will log in using their Google Account.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -129,19 +121,8 @@ export default function StaffPage() {
                                     name="email"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Email</FormLabel>
-                                            <FormControl><Input type="email" placeholder="staff@example.com" {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="password"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Password</FormLabel>
-                                            <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                                            <FormLabel>Google Account Email</FormLabel>
+                                            <FormControl><Input type="email" placeholder="staff@gmail.com" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -157,7 +138,7 @@ export default function StaffPage() {
                                                     <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {Object.values(UserRole).filter(r => r !== UserRole.Admin).map(r => (
+                                                    {Object.values(UserRole).map(r => (
                                                         <SelectItem key={r} value={r}>{r}</SelectItem>
                                                     ))}
                                                 </SelectContent>
@@ -202,11 +183,21 @@ export default function StaffPage() {
                                 <TableRow>
                                     <TableHead>Full Name</TableHead>
                                     <TableHead>Role</TableHead>
-                                    <TableHead>Department</TableHead>
+                                    <TableHead>Department/Info</TableHead>
                                     <TableHead>Email</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
+                                {loadingAdmins ? (
+                                    <TableRow><TableCell colSpan={4}><Skeleton className="h-4 w-full" /></TableCell></TableRow>
+                                ) : admins.map((admin) => (
+                                    <TableRow key={admin.id}>
+                                        <TableCell className="font-medium">{admin.fullName}</TableCell>
+                                        <TableCell>{admin.role}</TableCell>
+                                        <TableCell>N/A</TableCell>
+                                        <TableCell>{admin.email}</TableCell>
+                                    </TableRow>
+                                ))}
                                 {loadingDoctors ? (
                                     Array.from({ length: 3 }).map((_, i) => (
                                         <TableRow key={`doc-skel-${i}`}>
@@ -226,10 +217,7 @@ export default function StaffPage() {
                                 ))}
                                 {loadingReceptionists ? (
                                     <TableRow>
-                                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                                        <TableCell>N/A</TableCell>
-                                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                        <TableCell colSpan={4}><Skeleton className="h-4 w-full" /></TableCell>
                                     </TableRow>
                                 ) : receptionists.map((rec) => (
                                     <TableRow key={rec.id}>
@@ -241,10 +229,7 @@ export default function StaffPage() {
                                 ))}
                                 {loadingPharmacists ? (
                                     <TableRow>
-                                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                                        <TableCell>N/A</TableCell>
-                                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                        <TableCell colSpan={4}><Skeleton className="h-4 w-full" /></TableCell>
                                     </TableRow>
                                 ) : pharmacists.map((phar) => (
                                     <TableRow key={phar.id}>
@@ -254,7 +239,7 @@ export default function StaffPage() {
                                         <TableCell>{phar.email}</TableCell>
                                     </TableRow>
                                 ))}
-                                {!loadingDoctors && !loadingReceptionists && !loadingPharmacists && doctors.length === 0 && receptionists.length === 0 && pharmacists.length === 0 && (
+                                {!loadingDoctors && !loadingReceptionists && !loadingPharmacists && !loadingAdmins && doctors.length === 0 && receptionists.length === 0 && pharmacists.length === 0 && admins.length === 0 && (
                                      <TableRow>
                                         <TableCell colSpan={4} className="h-24 text-center">
                                             No staff found. Add one above to get started.
@@ -269,5 +254,3 @@ export default function StaffPage() {
         </div>
     )
 }
-
-    

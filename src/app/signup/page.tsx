@@ -11,8 +11,8 @@ export default function SignupPage() {
       </Link>
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-headline">Admin Account Signup</CardTitle>
-          <CardDescription>Join MediChain to manage your medical workflow.</CardDescription>
+          <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
+          <CardDescription>Sign up with your Google account to join MediChain.</CardDescription>
         </CardHeader>
         <CardContent>
           <SignupForm />
@@ -27,5 +27,3 @@ export default function SignupPage() {
     </div>
   )
 }
-
-    
