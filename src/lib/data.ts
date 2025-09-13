@@ -9,29 +9,33 @@ import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/fires
 
 
 // --- Pre-populated Mock Staff Data for Display ---
-const initialDoctors: Doctor[] = [
-    { id: "doc1", uid: "doc1", fullName: "Dr. Evelyn Reed", email: "evelyn.reed@medichain.com", phone: "+1-202-555-0181", role: UserRole.Doctor, department: "Cardiology", experience: 15, createdAt: new Date() },
-    { id: "doc2", uid: "doc2", fullName: "Dr. Samuel Green", email: "samuel.green@medichain.com", phone: "+1-202-555-0162", role: UserRole.Doctor, department: "Pediatrics", experience: 12, createdAt: new Date() },
-    { id: "doc3", uid: "doc3", fullName: "Dr. Isabella White", email: "isabella.white@medichain.com", phone: "+1-202-555-0113", role: UserRole.Doctor, department: "Neurology", experience: 10, createdAt: new Date() },
-    { id: "doc4", uid: "doc4", fullName: "Dr. James Black", email: "james.black@medichain.com", phone: "+1-202-555-0149", role: UserRole.Doctor, department: "General Physician", experience: 8, createdAt: new Date() },
+const initialAdmins: Admin[] = [
+    { id: 'adm1', uid: 'adm1', fullName: 'Ravi Sharma', email: 'ravi.admin@hospital.com', phone: '9876543210', role: UserRole.Admin, createdAt: new Date() },
+    { id: 'adm2', uid: 'adm2', fullName: 'Priya Mehta', email: 'priya.admin@hospital.com', phone: '9876543211', role: UserRole.Admin, createdAt: new Date() }
 ];
 
 const initialReceptionists: Receptionist[] = [
-    { id: "rec1", uid: "rec1", fullName: "Olivia Brown", email: "olivia.brown@medichain.com", phone: "+1-202-555-0196", role: UserRole.Receptionist, createdAt: new Date() },
-    { id: "rec2", uid: "rec2", fullName: "Liam Jones", email: "liam.jones@medichain.com", phone: "+1-202-555-0155", role: UserRole.Receptionist, createdAt: new Date() },
-    { id: "rec3", uid: "rec3", fullName: "Emma Garcia", email: "emma.garcia@medichain.com", phone: "+1-202-555-0134", role: UserRole.Receptionist, createdAt: new Date() },
+    { id: 'rec1', uid: 'rec1', fullName: 'Ankit Singh', email: 'ankit.reception@hospital.com', phone: '9876543212', role: UserRole.Receptionist, createdAt: new Date() },
+    { id: 'rec2', uid: 'rec2', fullName: 'Ankita Verma', email: 'ankita.reception@hospital.com', phone: '9876543213', role: UserRole.Receptionist, createdAt: new Date() },
+    { id: 'rec3', uid: 'rec3', fullName: 'Rahul Das', email: 'rahul.reception@hospital.com', phone: '9876543214', role: UserRole.Receptionist, createdAt: new Date() },
+    { id: 'rec4', uid: 'rec4', fullName: 'Shweta Rao', email: 'shweta.reception@hospital.com', phone: '9876543215', role: UserRole.Receptionist, createdAt: new Date() },
+];
+
+const initialDoctors: Doctor[] = [
+    { id: 'doc1', uid: 'doc1', fullName: 'Dr. Arjun Khanna', email: 'arjun.cardiology@hospital.com', phone: '9876543216', role: UserRole.Doctor, department: 'Cardiology', experience: 12, createdAt: new Date() },
+    { id: 'doc2', uid: 'doc2', fullName: 'Dr. Sneha Kapoor', email: 'sneha.neuro@hospital.com', phone: '9876543217', role: UserRole.Doctor, department: 'Neurology', experience: 8, createdAt: new Date() },
+    { id: 'doc3', uid: 'doc3', fullName: 'Dr. Rohan Sinha', email: 'rohan.gp@hospital.com', phone: '9876543218', role: UserRole.Doctor, department: 'General Physician', experience: 5, createdAt: new Date() },
+    { id: 'doc4', uid: 'doc4', fullName: 'Dr. Neha Gupta', email: 'neha.pedia@hospital.com', phone: '9876543219', role: UserRole.Doctor, department: 'Pediatrics', experience: 10, createdAt: new Date() },
+    { id: 'doc5', uid: 'doc5', fullName: 'Dr. Kiran Joshi', email: 'kiran.derma@hospital.com', phone: '9876543220', role: UserRole.Doctor, department: 'Dermatology', experience: 7, createdAt: new Date() },
 ];
 
 const initialPharmacists: Pharmacist[] = [
-    { id: "phar1", uid: "phar1", fullName: "Noah Martinez", email: "noah.martinez@medichain.com", phone: "+1-202-555-0121", role: UserRole.Pharmacist, createdAt: new Date() },
-    { id: "phar2", uid: "phar2", fullName: "Ava Robinson", email: "ava.robinson@medichain.com", phone: "+1-202-555-0178", role: UserRole.Pharmacist, createdAt: new Date() },
-    { id: "phar3", uid: "phar3", fullName: "Lucas Taylor", email: "lucas.taylor@medichain.com", phone: "+1-202-555-0189", role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: 'phar1', uid: 'phar1', fullName: 'Manoj Yadav', email: 'manoj.pharma@hospital.com', phone: '9876543221', role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: 'phar2', uid: 'phar2', fullName: 'Sakshi Patel', email: 'sakshi.pharma@hospital.com', phone: '9876543222', role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: 'phar3', uid: 'phar3', fullName: 'Deepak Nair', email: 'deepak.pharma@hospital.com', phone: '9876543223', role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: 'phar4', uid: 'phar4', fullName: 'Vikram Malhotra', email: 'vikram.pharma@hospital.com', phone: '9876543224', role: UserRole.Pharmacist, createdAt: new Date() },
 ];
 
-const initialAdmins: Admin[] = [
-    { id: "adm1", uid: "adm1", fullName: "Sophia Clark", email: "sophia.clark@medichain.com", phone: "+1-202-555-0100", role: UserRole.Admin, createdAt: new Date() },
-    { id: "adm2", uid: "adm2", fullName: "Jackson Wright", email: "jackson.wright@medichain.com", phone: "+1-202-555-0101", role: UserRole.Admin, createdAt: new Date() }
-];
 
 export const getDoctors = (): Doctor[] => initialDoctors;
 export const getReceptionists = (): Receptionist[] => initialReceptionists;
@@ -57,11 +61,11 @@ const initialPatients: Patient[] = [
 ];
 
 const initialAppointments: any[] = [
-    { id: "APP001", patientId: "PAT001", patientName: "Alice Johnson", doctorId: "doc1", doctorName: "Dr. Evelyn Reed", date: new Date(new Date().setHours(10, 0, 0, 0)), reason: "Annual Checkup", status: "Scheduled" },
-    { id: "APP002", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Samuel Green", date: new Date(new Date().setHours(10, 30, 0, 0)), reason: "Follow-up", status: "Scheduled" },
-    { id: "APP003", patientId: "PAT003", patientName: "Charlie Brown", doctorId: "doc3", doctorName: "Dr. Isabella White", date: new Date(new Date().setHours(11, 0, 0, 0)), reason: "Completed" },
-    { id: "APP004", patientId: "PAT004", patientName: "Diana Miller", doctorId: "doc1", doctorName: "Dr. Evelyn Reed", date: new Date(new Date().setHours(12, 15, 0, 0)), reason: "New Patient Visit", status: "Scheduled" },
-    { id: "APP005", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Samuel Green", date: add(new Date(), {days: 1, hours: 14}), reason: "Test Results", status: "Scheduled" },
+    { id: "APP001", patientId: "PAT001", patientName: "Alice Johnson", doctorId: "doc1", doctorName: "Dr. Arjun Khanna", date: new Date(new Date().setHours(10, 0, 0, 0)), reason: "Annual Checkup", status: "Scheduled" },
+    { id: "APP002", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Sneha Kapoor", date: new Date(new Date().setHours(10, 30, 0, 0)), reason: "Follow-up", status: "Scheduled" },
+    { id: "APP003", patientId: "PAT003", patientName: "Charlie Brown", doctorId: "doc3", doctorName: "Dr. Rohan Sinha", date: new Date(new Date().setHours(11, 0, 0, 0)), reason: "Completed" },
+    { id: "APP004", patientId: "PAT004", patientName: "Diana Miller", doctorId: "doc1", doctorName: "Dr. Arjun Khanna", date: new Date(new Date().setHours(12, 15, 0, 0)), reason: "New Patient Visit", status: "Scheduled" },
+    { id: "APP005", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Sneha Kapoor", date: add(new Date(), {days: 1, hours: 14}), reason: "Test Results", status: "Scheduled" },
 ];
 
 const initialSuppliers: Supplier[] = [
@@ -81,9 +85,9 @@ const initialMedicines: Medicine[] = [
 ];
 
 const initialPrescriptions: Prescription[] = [
-    { id: "PRE001", patientName: "Alice Johnson", doctorName: "Dr. Smith", medication: "Metformin 1000mg", dosage: "1 tablet daily", date: subDays(new Date(), 1), status: "Pending" },
-    { id: "PRE002", patientName: "Bob Williams", doctorName: "Dr. Evans", medication: "Amoxicillin 250mg", dosage: "1 capsule every 8 hours", date: new Date(), status: "Pending" },
-    { id: "PRE003", patientName: "Diana Miller", doctorName: "Dr. Smith", medication: "Ibuprofen 200mg", dosage: "2 tablets as needed for pain", date: subDays(new Date(), 2), status: "Processed" },
+    { id: "PRE001", patientName: "Alice Johnson", doctorName: "Dr. Arjun Khanna", medication: "Metformin 1000mg", dosage: "1 tablet daily", date: subDays(new Date(), 1), status: "Pending" },
+    { id: "PRE002", patientName: "Bob Williams", doctorName: "Dr. Sneha Kapoor", medication: "Amoxicillin 250mg", dosage: "1 capsule every 8 hours", date: new Date(), status: "Pending" },
+    { id: "PRE003", patientName: "Diana Miller", doctorName: "Dr. Arjun Khanna", medication: "Ibuprofen 200mg", dosage: "2 tablets as needed for pain", date: subDays(new Date(), 2), status: "Processed" },
 ];
 
 const initialMedicationOrders: MedicationOrder[] = [
