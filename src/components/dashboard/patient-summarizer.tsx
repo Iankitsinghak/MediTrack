@@ -1,6 +1,7 @@
 "use client"
 
-import { useFormState, useFormStatus } from "react-dom"
+import { useFormStatus } from "react-dom"
+import { useActionState, useEffect } from "react"
 import { Bot, Clipboard, FileText, HeartPulse, Sparkles, Stethoscope, Syringe } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -9,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { handleSummarization, type FormState } from "@/lib/actions"
 import { Skeleton } from "../ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
-import { useEffect } from "react"
 
 const initialState: FormState = {
   summary: null,
@@ -108,7 +108,7 @@ function SummarySkeleton() {
 }
 
 export function PatientSummarizer() {
-  const [state, formAction] = useFormState(handleSummarization, initialState)
+  const [state, formAction] = useActionState(handleSummarization, initialState)
   const { pending } = useFormStatus()
   const { toast } = useToast()
 
