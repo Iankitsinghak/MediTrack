@@ -26,15 +26,17 @@ const addStaffSchema = z.object({
   fullName: z.string().min(3, "Full name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
   role: z.nativeEnum(UserRole),
   department: z.string().optional(),
+  experience: z.coerce.number().optional(),
 }).refine(data => {
     if (data.role === UserRole.Doctor) {
-        return !!data.department && data.department.length > 2;
+        return !!data.department && data.department.length > 2 && data.experience !== undefined && data.experience >= 0;
     }
     return true;
 }, {
-    message: "Department is required for doctors.",
+    message: "Department and Experience are required for doctors.",
     path: ["department"],
 });
 
@@ -53,16 +55,16 @@ export default function StaffPage() {
             fullName: "",
             email: "",
             password: "",
+            phone: "",
             role: UserRole.Doctor,
-            department: ""
+            department: "",
+            experience: 0,
         }
     });
 
     const role = form.watch("role");
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
-        // This is a simplified client-side user creation.
-        // In a production app, this should be a secure Cloud Function.
         const adminUser = auth.currentUser;
         if (!adminUser) {
             toast({
@@ -73,46 +75,39 @@ export default function StaffPage() {
             return;
         }
 
-        // We can't create a user and then immediately re-authenticate the admin
-        // without the admin's password. This is a limitation of the client-side SDK.
-        // The ideal solution is a Cloud Function. For this demo, we'll create the
-        // user record in Firestore, but auth creation would need a backend process.
-        // The current implementation simulates this by creating a user on the client,
-        // which has the side-effect of logging the admin out.
-
         try {
-            // This is where a call to a Cloud Function would go.
-            // e.g., const { data } = await functions.httpsCallable('createStaffUser')(values);
-
-            // To make this work in the prototype environment, we create the user on the client.
-            // NOTE: This will sign the admin out. This is a known limitation.
-            const tempAuth = auth; // Use a direct reference
-            const userCredential = await createUserWithEmailAndPassword(tempAuth, values.email, values.password);
+            // This approach of creating a user on the client has limitations (signs admin out).
+            // A Cloud Function is the robust solution for a production app.
+            // For this prototype environment, this is the most direct way to create a user and see them in the list.
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
             const userProfile: any = {
                 uid: user.uid,
                 fullName: values.fullName,
                 email: values.email,
+                phone: values.phone,
                 role: values.role,
                 createdAt: serverTimestamp()
             };
 
             if (values.role === UserRole.Doctor) {
                 userProfile.department = values.department;
+                userProfile.experience = values.experience;
             }
 
             await setDoc(doc(db, `${values.role.toLowerCase()}s`, user.uid), userProfile);
             
             toast({
                 title: "Staff Member Added",
-                description: `${values.fullName} has been created. You will be logged out. Please log in again.`,
+                description: `${values.fullName} has been created. IMPORTANT: You will be logged out now. Please log in again to continue managing staff.`,
             });
             
             form.reset();
             
-            // Sign out the newly created user and force admin to log back in
-            await tempAuth.signOut();
+            // Sign out the newly created user, forcing the admin to log back in.
+            // This is a necessary step in this prototype environment to "return" to the admin session.
+            await auth.signOut();
             window.location.href = '/login';
 
 
@@ -164,7 +159,7 @@ export default function StaffPage() {
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <FormField
                                     control={form.control}
                                     name="fullName"
@@ -183,6 +178,17 @@ export default function StaffPage() {
                                         <FormItem>
                                             <FormLabel>Login Email</FormLabel>
                                             <FormControl><Input type="email" placeholder="staff@medichain.com" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={form.control}
+                                    name="phone"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Phone Number</FormLabel>
+                                            <FormControl><Input placeholder="+1 234 567 890" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -218,18 +224,32 @@ export default function StaffPage() {
                                         </FormItem>
                                     )}
                                 />
+
                                {role === UserRole.Doctor && (
-                                 <FormField
-                                    control={form.control}
-                                    name="department"
-                                    render={({ field }) => (
-                                        <FormItem className="lg:col-span-4">
-                                            <FormLabel>Department</FormLabel>
-                                            <FormControl><Input placeholder="e.g. Cardiology" {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                 <>
+                                    <FormField
+                                        control={form.control}
+                                        name="department"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Specialization</FormLabel>
+                                                <FormControl><Input placeholder="e.g. Cardiology" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="experience"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Experience (Years)</FormLabel>
+                                                <FormControl><Input type="number" placeholder="5" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                 </>
                                )}
                             </div>
                             <div className="flex justify-end">
@@ -255,8 +275,8 @@ export default function StaffPage() {
                                     <TableHead>S/N</TableHead>
                                     <TableHead>Full Name</TableHead>
                                     <TableHead>Role</TableHead>
-                                    <TableHead>Department/Info</TableHead>
-                                    <TableHead>Email</TableHead>
+                                    <TableHead>Details</TableHead>
+                                    <TableHead>Contact</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -272,12 +292,15 @@ export default function StaffPage() {
                                     ))
                                 ) : allStaff.length > 0 ? (
                                     allStaff.map((staff, index) => (
-                                    <TableRow key={staff.id}>
+                                    <TableRow key={staff.uid || staff.id}>
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell className="font-medium">{staff.fullName}</TableCell>
                                         <TableCell>{staff.role}</TableCell>
-                                        <TableCell>{(staff as Doctor).department || 'N/A'}</TableCell>
-                                        <TableCell>{staff.email}</TableCell>
+                                        <TableCell>
+                                            {(staff.role === UserRole.Doctor) && `Dept: ${(staff as Doctor).department}, Exp: ${(staff as Doctor).experience} yrs`}
+                                            {(staff.role !== UserRole.Doctor) && 'N/A'}
+                                        </TableCell>
+                                        <TableCell>{staff.email}<br/>{staff.phone}</TableCell>
                                     </TableRow>
                                 ))) : (
                                      <TableRow>

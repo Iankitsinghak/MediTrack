@@ -1,7 +1,8 @@
 // In a real application, this would be a database connection.
-// For this prototype, we're using in-memory data that persists in localStorage to simulate a backend.
+// For this prototype, we're using in-memory data that persists to simulate a backend.
+// All "add" operations now write to Firestore.
 
-import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist, BaseUser, Admin, Appointment } from "./types";
+import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist, Admin, Appointment } from "./types";
 import { add, format, subDays } from "date-fns";
 import { db } from './firebase';
 import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/firestore';
@@ -9,31 +10,27 @@ import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/fires
 
 // --- Pre-populated Mock Staff Data for Display ---
 const initialDoctors: Doctor[] = [
-    { id: "doc1", fullName: "Dr. Evelyn Reed", email: "evelyn.reed@medichain.com", role: UserRole.Doctor, department: "Cardiology", createdAt: new Date() },
-    { id: "doc2", fullName: "Dr. Samuel Green", email: "samuel.green@medichain.com", role: UserRole.Doctor, department: "Pediatrics", createdAt: new Date() },
-    { id: "doc3", fullName: "Dr. Isabella White", email: "isabella.white@medichain.com", role: UserRole.Doctor, department: "Neurology", createdAt: new Date() },
-    { id: "doc4", fullName: "Dr. James Black", email: "james.black@medichain.com", role: UserRole.Doctor, department: "Orthopedics", createdAt: new Date() },
-    { id: "doc5", fullName: "Dr. Chloe King", email: "chloe.king@medichain.com", role: UserRole.Doctor, department: "Oncology", createdAt: new Date() },
+    { id: "doc1", uid: "doc1", fullName: "Dr. Evelyn Reed", email: "evelyn.reed@medichain.com", phone: "+1-202-555-0181", role: UserRole.Doctor, department: "Cardiology", experience: 15, createdAt: new Date() },
+    { id: "doc2", uid: "doc2", fullName: "Dr. Samuel Green", email: "samuel.green@medichain.com", phone: "+1-202-555-0162", role: UserRole.Doctor, department: "Pediatrics", experience: 12, createdAt: new Date() },
+    { id: "doc3", uid: "doc3", fullName: "Dr. Isabella White", email: "isabella.white@medichain.com", phone: "+1-202-555-0113", role: UserRole.Doctor, department: "Neurology", experience: 10, createdAt: new Date() },
+    { id: "doc4", uid: "doc4", fullName: "Dr. James Black", email: "james.black@medichain.com", phone: "+1-202-555-0149", role: UserRole.Doctor, department: "General Physician", experience: 8, createdAt: new Date() },
 ];
 
 const initialReceptionists: Receptionist[] = [
-    { id: "rec1", fullName: "Olivia Brown", email: "olivia.brown@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
-    { id: "rec2", fullName: "Liam Jones", email: "liam.jones@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
-    { id: "rec3", fullName: "Emma Garcia", email: "emma.garcia@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
-    { id: "rec4", fullName: "William Smith", email: "william.smith@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
-    { id: "rec5", fullName: "Mia Johnson", email: "mia.johnson@medichain.com", role: UserRole.Receptionist, createdAt: new Date() },
+    { id: "rec1", uid: "rec1", fullName: "Olivia Brown", email: "olivia.brown@medichain.com", phone: "+1-202-555-0196", role: UserRole.Receptionist, createdAt: new Date() },
+    { id: "rec2", uid: "rec2", fullName: "Liam Jones", email: "liam.jones@medichain.com", phone: "+1-202-555-0155", role: UserRole.Receptionist, createdAt: new Date() },
+    { id: "rec3", uid: "rec3", fullName: "Emma Garcia", email: "emma.garcia@medichain.com", phone: "+1-202-555-0134", role: UserRole.Receptionist, createdAt: new Date() },
 ];
 
 const initialPharmacists: Pharmacist[] = [
-    { id: "phar1", fullName: "Noah Martinez", email: "noah.martinez@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
-    { id: "phar2", fullName: "Ava Robinson", email: "ava.robinson@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
-    { id: "phar3", fullName: "Lucas Taylor", email: "lucas.taylor@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
-    { id: "phar4", fullName: "Isabella Wilson", email: "isabella.wilson@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
-    { id: "phar5", fullName: "Mason Moore", email: "mason.moore@medichain.com", role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: "phar1", uid: "phar1", fullName: "Noah Martinez", email: "noah.martinez@medichain.com", phone: "+1-202-555-0121", role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: "phar2", uid: "phar2", fullName: "Ava Robinson", email: "ava.robinson@medichain.com", phone: "+1-202-555-0178", role: UserRole.Pharmacist, createdAt: new Date() },
+    { id: "phar3", uid: "phar3", fullName: "Lucas Taylor", email: "lucas.taylor@medichain.com", phone: "+1-202-555-0189", role: UserRole.Pharmacist, createdAt: new Date() },
 ];
 
 const initialAdmins: Admin[] = [
-    { id: "adm1", fullName: "Sophia Clark", email: "sophia.clark@medichain.com", role: UserRole.Admin, createdAt: new Date() }
+    { id: "adm1", uid: "adm1", fullName: "Sophia Clark", email: "sophia.clark@medichain.com", phone: "+1-202-555-0100", role: UserRole.Admin, createdAt: new Date() },
+    { id: "adm2", uid: "adm2", fullName: "Jackson Wright", email: "jackson.wright@medichain.com", phone: "+1-202-555-0101", role: UserRole.Admin, createdAt: new Date() }
 ];
 
 export const getDoctors = (): Doctor[] => initialDoctors;
@@ -97,7 +94,6 @@ const initialMedicationOrders: MedicationOrder[] = [
 
 // In-memory data stores that are NOT persisted to localStorage
 let patients: Patient[] = [...initialPatients];
-// let appointments: any[] = [...initialAppointments];
 let suppliers: Supplier[] = [...initialSuppliers];
 let medicines: Medicine[] = [...initialMedicines];
 let prescriptions: Prescription[] = [...initialPrescriptions];
@@ -105,7 +101,7 @@ let medicationOrders: MedicationOrder[] = [...initialMedicationOrders];
 
 export const getAvailableBeds = () => availableBeds.filter(bed => !bed.isOccupied);
 export const getPatients = () => patients;
-export const getAppointments = () => []; // appointments;
+export const getAppointments = () => [];
 export const getSuppliers = () => suppliers;
 export const getMedicines = () => medicines;
 export const getPrescriptions = () => prescriptions;

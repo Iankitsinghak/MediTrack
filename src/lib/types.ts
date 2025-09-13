@@ -11,13 +11,15 @@ export interface BaseUser {
   uid?: string; // This would be the Firebase Auth UID
   fullName?: string; // fullName is used for firestore data
   email: string;
+  phone: string;
   role: UserRole;
   createdAt: any; // Firestore timestamp
 }
 
 export interface Doctor extends BaseUser {
   role: UserRole.Doctor;
-  department: string;
+  department: string; // Specialization for doctors
+  experience: number; // Experience in years
 }
 
 export interface Admin extends BaseUser {
