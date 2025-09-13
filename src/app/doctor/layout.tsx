@@ -78,7 +78,7 @@ export default function DoctorLayout({
         <SidebarNav />
       </Sidebar>
       <SidebarInset>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense>
           <DoctorHeader />
         </Suspense>
         <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
