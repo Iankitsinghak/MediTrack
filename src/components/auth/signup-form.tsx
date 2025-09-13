@@ -51,7 +51,6 @@ export function AdminSignupForm() {
 
             // No need to sign in again, createUserWithEmailAndPassword does it automatically
             router.push('/admin/dashboard');
-            router.refresh();
 
         } catch (error: any) {
             console.error("Admin Signup Error:", error);

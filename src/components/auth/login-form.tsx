@@ -109,7 +109,6 @@ export function EmailLoginForm() {
         dashboardPath += `?doctorId=${user.uid}`;
       }
       router.push(dashboardPath);
-      router.refresh();
 
     } catch (error: any) {
       console.error("Login Error:", error);

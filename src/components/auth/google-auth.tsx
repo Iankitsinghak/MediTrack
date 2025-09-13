@@ -82,7 +82,6 @@ export function GoogleSignInButton() {
                 dashboardPath += `?doctorId=${user.uid}`;
             }
             router.push(dashboardPath);
-            router.refresh();
 
         } catch (error: any) {
             console.error("Google Sign-In Error:", error);
