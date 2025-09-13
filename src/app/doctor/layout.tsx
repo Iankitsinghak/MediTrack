@@ -49,12 +49,12 @@ export default function DoctorLayout({
               >
                 <Avatar>
                   <AvatarImage src="https://picsum.photos/seed/doctor-avatar/40/40" alt="Doctor avatar" />
-                  <AvatarFallback>Dr</AvatarFallback>
+                  <AvatarFallback>DS</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>Dr. Smith</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
