@@ -18,8 +18,7 @@ export interface Patient {
   fullName: string;
   dateOfBirth: string;
   gender: 'Male' | 'Female' | 'Other';
-  contact: string;
-  address: string;
+  doctorId: string;
 }
 
 export interface Appointment {

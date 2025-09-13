@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Bed, Hospital, Stethoscope } from "lucide-react"
+import { CalendarIcon, Hospital } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
@@ -13,7 +13,6 @@ import { Calendar } from "@/components/ui/calendar"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -35,19 +34,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-
-// Mock data (in a real app, this would come from a database)
-const doctors = [
-  { id: "doc1", name: "Dr. Smith" },
-  { id: "doc2", name: "Dr. Evans" },
-  { id: "doc3", name: "Dr. Patel" },
-]
-
-const availableBeds = [
-  { id: "bed101", number: "101" },
-  { id: "bed102", number: "102" },
-  { id: "bed205", number: "205" },
-]
+import { getDoctors, getAvailableBeds, registerPatient, scheduleAppointment } from "@/lib/data"
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
@@ -56,7 +43,9 @@ const formSchema = z.object({
   doctorId: z.string({ required_error: "Please select a doctor." }),
   needsBed: z.enum(["Yes", "No"], { required_error: "Please specify if a bed is needed." }),
   bedId: z.string().optional(),
-  appointmentDateTime: z.date({ required_error: "An appointment date and time is required." }),
+  appointmentDate: z.date({ required_error: "An appointment date is required." }),
+  appointmentTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format. Use HH:mm."),
+  reason: z.string().min(3, "A reason for the visit is required."),
 }).refine(data => {
     if (data.needsBed === "Yes") {
         return !!data.bedId;
@@ -70,6 +59,8 @@ const formSchema = z.object({
 export default function RegisterPatientPage() {
     const router = useRouter();
     const { toast } = useToast();
+    const doctors = getDoctors();
+    const availableBeds = getAvailableBeds();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -79,24 +70,51 @@ export default function RegisterPatientPage() {
             doctorId: undefined,
             needsBed: "No",
             bedId: undefined,
+            appointmentTime: "09:00",
+            reason: "Initial Consultation",
         },
     })
 
     const needsBed = form.watch("needsBed");
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        // In a real app, you would:
-        // 1. Save patient record to "patients" collection in Firestore
-        // 2. If a bed is assigned, update the "beds" collection
-        console.log("Form submitted with values:", values)
-        
-        toast({
-            title: "Patient Registered Successfully",
-            description: `${values.fullName} has been registered for an appointment.`,
-        })
+        try {
+            // 1. Register the patient
+            const newPatient = registerPatient({
+                fullName: values.fullName,
+                dateOfBirth: format(values.dateOfBirth, "yyyy-MM-dd"),
+                gender: values.gender,
+                doctorId: values.doctorId,
+                bedId: values.bedId,
+            });
 
-        // Redirect to a relevant dashboard
-        router.push("/receptionist/dashboard");
+            // 2. Schedule the initial appointment
+            const [hours, minutes] = values.appointmentTime.split(':').map(Number);
+            const appointmentDateTime = new Date(values.appointmentDate);
+            appointmentDateTime.setHours(hours, minutes);
+
+            scheduleAppointment({
+                patientId: newPatient.id,
+                doctorId: values.doctorId,
+                date: appointmentDateTime,
+                reason: values.reason,
+            });
+            
+            toast({
+                title: "Patient Registered Successfully",
+                description: `${values.fullName} has been registered and an appointment is scheduled.`,
+            });
+
+            // Redirect to the new patient's page or the main patient list
+            router.push("/receptionist/patients");
+        } catch (error) {
+             toast({
+                variant: "destructive",
+                title: "Registration Failed",
+                description: "An unexpected error occurred. Please try again.",
+            });
+            console.error("Registration failed", error);
+        }
     }
 
     return (
@@ -105,7 +123,7 @@ export default function RegisterPatientPage() {
                 <Hospital className="h-8 w-8" />
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight font-headline">Register New Patient</h1>
-                    <p className="text-muted-foreground">Fill out the form below to add a new patient to the system.</p>
+                    <p className="text-muted-foreground">Fill out the form to add a new patient and schedule their first appointment.</p>
                 </div>
             </div>
             <Card>
@@ -198,7 +216,7 @@ export default function RegisterPatientPage() {
                                     name="doctorId"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Choose Doctor *</FormLabel>
+                                            <FormLabel>Assign Doctor *</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
@@ -217,7 +235,7 @@ export default function RegisterPatientPage() {
                                 />
                                 <FormField
                                     control={form.control}
-                                    name="appointmentDateTime"
+                                    name="appointmentDate"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col">
                                             <FormLabel>Appointment Date *</FormLabel>
@@ -255,10 +273,34 @@ export default function RegisterPatientPage() {
                                 />
                                 <FormField
                                     control={form.control}
+                                    name="appointmentTime"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Appointment Time *</FormLabel>
+                                            <FormControl><Input type="time" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                               <FormField
+                                    control={form.control}
+                                    name="reason"
+                                    render={({ field }) => (
+                                        <FormItem className="md:col-span-2">
+                                            <FormLabel>Reason for Visit *</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="e.g., Initial Consultation, Annual Checkup" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
                                     name="needsBed"
                                     render={({ field }) => (
                                         <FormItem className="space-y-3">
-                                            <FormLabel>Need Bed? *</FormLabel>
+                                            <FormLabel>Needs Bed Admission?</FormLabel>
                                             <FormControl>
                                                 <RadioGroup
                                                     onValueChange={field.onChange}
@@ -302,6 +344,9 @@ export default function RegisterPatientPage() {
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
+                                                <FormDescription>
+                                                    Only non-occupied beds are shown.
+                                                </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -309,7 +354,7 @@ export default function RegisterPatientPage() {
                                 )}
                             </div>
                             <div className="flex justify-end pt-4">
-                                <Button type="submit">Register Patient</Button>
+                                <Button type="submit">Register Patient & Schedule</Button>
                             </div>
                         </form>
                     </Form>
