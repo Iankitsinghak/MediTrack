@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
 import { signInWithEmailAndPassword } from "firebase/auth"
-import { doc, getDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import { useToast } from "@/hooks/use-toast"
 import { useState, useEffect } from "react"
@@ -23,7 +22,6 @@ import { Input } from "@/components/ui/input"
 import { UserRole, type Doctor, type Pharmacist, type Receptionist } from "@/lib/types"
 import { useFirestore } from "@/hooks/use-firestore"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { seedDatabase } from "@/lib/seed"
 
 
 const formSchema = z.object({
@@ -105,23 +103,6 @@ export function LoginForm() {
       });
     }
   }
-  
-  const handleSeed = async () => {
-    try {
-      await seedDatabase();
-      toast({
-        title: "Database Seeded",
-        description: "Dummy staff has been added to Firestore.",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Seeding Failed",
-        description: (error as Error).message,
-      });
-    }
-  };
-
 
   return (
     <Form {...form}>
@@ -188,12 +169,7 @@ export function LoginForm() {
         <Button type="submit" className="w-full" disabled={!form.formState.isValid}>
           Log In
         </Button>
-         <Button type="button" variant="outline" className="w-full" onClick={handleSeed}>
-          Seed Dummy Staff
-        </Button>
       </form>
     </Form>
   )
 }
-
-    
