@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useForm } from "react-hook-form";
@@ -30,6 +31,7 @@ const addStaffSchema = z.object({
   role: z.nativeEnum(UserRole),
   department: z.string().optional(),
   experience: z.coerce.number().optional(),
+  story: z.string().optional(),
 }).refine(data => {
     if (data.role === UserRole.Doctor) {
         return !!data.department && data.department.length > 2 && data.experience !== undefined && data.experience >= 0;
@@ -59,6 +61,7 @@ export default function StaffPage() {
             role: UserRole.Doctor,
             department: "",
             experience: 0,
+            story: "",
         }
     });
 
@@ -66,9 +69,10 @@ export default function StaffPage() {
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
         try {
-            // This approach of creating a user on the client has limitations (signs admin out).
-            // A Cloud Function is the robust solution for a production app.
-            // For this prototype environment, this is the most direct way to create a user and see them in the list.
+            // NOTE: Using createUserWithEmailAndPassword on the client will temporarily
+            // sign in the new user, which can disrupt the admin's session.
+            // A robust solution uses a Cloud Function to create users.
+            // For this prototype, we'll accept this limitation.
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
@@ -78,6 +82,7 @@ export default function StaffPage() {
                 email: values.email,
                 phone: values.phone,
                 role: values.role,
+                story: values.story || '',
                 createdAt: serverTimestamp()
             };
 
@@ -90,16 +95,12 @@ export default function StaffPage() {
             
             toast({
                 title: "Staff Member Added",
-                description: `${values.fullName} has been created. IMPORTANT: You will be logged out now. Please log in again to continue managing staff.`,
+                description: `${values.fullName} has been created. You may need to re-login to restore your admin session.`,
             });
             
             form.reset();
-            
-            // Sign out the newly created user, forcing the admin to log back in.
-            // This is a necessary step in this prototype environment to "return" to the admin session.
-            await auth.signOut();
-            window.location.href = '/login';
-
+            // Intentionally not signing out the admin to avoid disruption.
+            // The admin can manually log out and log back in if their session is affected.
 
         } catch (error: any) {
             console.error("Error adding staff:", error);
@@ -144,7 +145,7 @@ export default function StaffPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Add New Staff Member</CardTitle>
-                    <CardDescription>Create a new account. NOTE: Due to prototype limitations, you will be logged out after adding a user.</CardDescription>
+                    <CardDescription>Create a new account for a staff member.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -241,6 +242,17 @@ export default function StaffPage() {
                                     />
                                  </>
                                )}
+                                <FormField
+                                    control={form.control}
+                                    name="story"
+                                    render={({ field }) => (
+                                        <FormItem className="lg:col-span-3">
+                                            <FormLabel>Staff Story / Bio</FormLabel>
+                                            <FormControl><Input placeholder="A short bio about the staff member..." {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
                             <div className="flex justify-end">
                                 <Button type="submit"><UserPlus className="mr-2 h-4 w-4" /> Add Staff Member</Button>
@@ -267,6 +279,7 @@ export default function StaffPage() {
                                     <TableHead>Role</TableHead>
                                     <TableHead>Details</TableHead>
                                     <TableHead>Contact</TableHead>
+                                    <TableHead>Bio</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -277,6 +290,7 @@ export default function StaffPage() {
                                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                                         </TableRow>
                                     ))
@@ -291,10 +305,11 @@ export default function StaffPage() {
                                             {(staff.role !== UserRole.Doctor) && 'N/A'}
                                         </TableCell>
                                         <TableCell>{staff.email}<br/>{staff.phone}</TableCell>
+                                        <TableCell>{staff.story}</TableCell>
                                     </TableRow>
                                 ))) : (
                                      <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        <TableCell colSpan={6} className="h-24 text-center">
                                             No staff found. Add one above to get started.
                                         </TableCell>
                                     </TableRow>
@@ -307,3 +322,5 @@ export default function StaffPage() {
         </div>
     )
 }
+
+    
