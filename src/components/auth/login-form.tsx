@@ -78,8 +78,8 @@ export function EmailLoginForm() {
 
     if (values.role === UserRole.Admin) {
         emailToLogin = values.email;
-        // In a real app, you might fetch the admin's name, but email is enough for login
-        userFullName = "Admin";
+        const adminUser = admins.find(a => a.email === emailToLogin);
+        userFullName = adminUser?.fullName ?? "Admin";
     } else if (values.staffId) {
         const staffList = roleToStaffList[values.role].data;
         const selectedStaff = staffList.find(s => s.id === values.staffId);
@@ -181,7 +181,7 @@ export function EmailLoginForm() {
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={roleToStaffList[selectedRole!].loading ? "Loading..." : "Select your name"} />
-                    </SelectTrigger>
+                    </Trigger>
                   </FormControl>
                   <SelectContent>
                     {roleToStaffList[selectedRole!].data.map(s => (
