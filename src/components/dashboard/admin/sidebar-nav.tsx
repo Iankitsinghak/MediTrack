@@ -1,3 +1,4 @@
+
 "use client"
 
 import {
@@ -13,6 +14,7 @@ import {
   Banknote,
   BedDouble,
   Package,
+  UserCircle
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from 'next/navigation'
@@ -23,6 +25,7 @@ const adminNav = [
   { href: "/admin/billing", icon: Banknote, label: "Billing" },
   { href: "/admin/icu-beds", icon: BedDouble, label: "ICU/Beds" },
   { href: "/admin/inventory", icon: Package, label: "Inventory" },
+  { href: "/admin/profile", icon: UserCircle, label: "Profile" },
 ]
 
 export function SidebarNav() {

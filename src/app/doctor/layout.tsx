@@ -23,11 +23,10 @@ import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useFirestore } from "@/hooks/use-firestore"
-import type { Doctor } from "@/lib/types"
+import { useEffect, useState } from "react"
 import { doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { useEffect, useState } from "react"
+import type { Doctor } from "@/lib/types"
 
 function getInitials(name: string = "") {
   const names = name.split(' ');
@@ -64,6 +63,10 @@ function DoctorHeader() {
     )
   }
 
+  const profileLink = `/doctor/profile?doctorId=${doctorId}`;
+  const supportLink = `/support?role=doctor&id=${doctorId}`;
+
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <SidebarTrigger className="md:hidden" />
@@ -90,8 +93,8 @@ function DoctorHeader() {
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>{doctor.fullName}</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Support</DropdownMenuItem>
+          <DropdownMenuItem asChild><Link href={profileLink}>Profile</Link></DropdownMenuItem>
+          <DropdownMenuItem asChild><Link href={supportLink}>Support</Link></DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild><Link href="/">Logout</Link></DropdownMenuItem>
         </DropdownMenuContent>

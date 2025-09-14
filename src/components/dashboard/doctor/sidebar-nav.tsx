@@ -1,3 +1,4 @@
+
 "use client"
 
 import {
@@ -14,6 +15,7 @@ import {
   CalendarDays,
   FlaskConical,
   FileText,
+  UserCircle
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useSearchParams } from 'next/navigation'
@@ -30,6 +32,7 @@ export function SidebarNav() {
     { href: `/doctor/consultations?doctorId=${doctorId}`, icon: FileText, label: "Consultations" },
     { href: `/doctor/lab-requests?doctorId=${doctorId}`, icon: FlaskConical, label: "Lab Requests" },
     { href: `/doctor/prescriptions?doctorId=${doctorId}`, icon: Pill, label: "Prescriptions" },
+    { href: `/doctor/profile?doctorId=${doctorId}`, icon: UserCircle, label: "Profile" },
   ]
 
   return (

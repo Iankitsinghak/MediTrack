@@ -1,3 +1,4 @@
+
 "use client"
 
 import {
@@ -11,7 +12,8 @@ import {
   LayoutDashboard,
   CalendarDays,
   UserPlus,
-  Users
+  Users,
+  UserCircle
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from 'next/navigation'
@@ -21,6 +23,7 @@ const receptionistNav = [
   { href: "/receptionist/appointments", icon: CalendarDays, label: "Appointments" },
   { href: "/receptionist/register-patient", icon: UserPlus, label: "Register Patient" },
   { href: "/receptionist/patients", icon: Users, label: "Patients" },
+  { href: "/receptionist/profile", icon: UserCircle, label: "Profile" },
 ]
 
 

@@ -1,4 +1,7 @@
 
+"use client"
+
+import { Suspense } from "react"
 import { SidebarNav } from "@/components/dashboard/receptionist/sidebar-nav"
 import {
   SidebarProvider,
@@ -19,18 +22,32 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import { useAuthUser } from "@/hooks/use-auth-user"
+import type { Receptionist } from "@/lib/types"
 
-export default function ReceptionistLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarNav />
-      </Sidebar>
-      <SidebarInset>
+function getInitials(name: string = "") {
+  const names = name.split(' ');
+  if (names.length > 1) {
+    return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
+  }
+  return name.charAt(0).toUpperCase();
+}
+
+function ReceptionistHeader() {
+    const { user: receptionist, loading } = useAuthUser<Receptionist>('receptionists');
+
+    if (loading || !receptionist) {
+        return (
+             <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+                {/* Loading state */}
+            </header>
+        )
+    }
+
+    const profileLink = `/receptionist/profile`;
+    const supportLink = `/support?role=receptionist`;
+
+    return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
           <SidebarTrigger className="md:hidden" />
           <div className="relative ml-auto flex-1 md:grow-0">
@@ -49,20 +66,37 @@ export default function ReceptionistLayout({
                 className="overflow-hidden rounded-full"
               >
                 <Avatar>
-                  <AvatarFallback>R</AvatarFallback>
+                  <AvatarFallback>{getInitials(receptionist.fullName)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>{receptionist.fullName}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href={profileLink}>Profile</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href={supportLink}>Support</Link></DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild><Link href="/">Logout</Link></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
+    )
+}
+
+export default function ReceptionistLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarNav />
+      </Sidebar>
+      <SidebarInset>
+        <Suspense>
+            <ReceptionistHeader />
+        </Suspense>
         <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
           {children}
         </main>

@@ -6,17 +6,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc } from "firebase/firestore";
-import type { Admin } from "@/lib/types";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import type { Doctor } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { User as UserIcon, Mail, Phone, Edit, Loader2 } from "lucide-react";
+import { User as UserIcon, Mail, Phone, Edit, Loader2, Stethoscope, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useAuthUser } from "@/hooks/use-auth-user";
+import { useSearchParams } from "next/navigation";
 
 const profileSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters."),
@@ -32,8 +32,11 @@ function getInitials(name: string = "") {
 }
 
 
-export default function AdminProfilePage() {
-    const { user: admin, loading, setUser: setAdmin } = useAuthUser<Admin>('admins');
+export default function DoctorProfilePage() {
+    const searchParams = useSearchParams();
+    const doctorId = searchParams.get('doctorId');
+    const [doctor, setDoctor] = useState<Doctor | null>(null);
+    const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const { toast } = useToast();
 
@@ -42,19 +45,31 @@ export default function AdminProfilePage() {
     });
 
     useEffect(() => {
-        if (admin) {
-            form.reset({
-                fullName: admin.fullName,
-                phone: admin.phone,
-            });
+        if (doctorId) {
+            const fetchDoctorData = async (uid: string) => {
+                const docRef = doc(db, "doctors", uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const doctorData = { id: docSnap.id, ...docSnap.data() } as Doctor;
+                    setDoctor(doctorData);
+                    form.reset({
+                        fullName: doctorData.fullName,
+                        phone: doctorData.phone,
+                    });
+                }
+                setLoading(false);
+            };
+            fetchDoctorData(doctorId);
+        } else {
+            setLoading(false);
         }
-    }, [admin, form]);
+    }, [doctorId, form]);
 
     const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-        if (!admin) return;
+        if (!doctor) return;
         try {
-            const adminRef = doc(db, "admins", admin.id);
-            await updateDoc(adminRef, {
+            const doctorRef = doc(db, "doctors", doctor.id);
+            await updateDoc(doctorRef, {
                 fullName: values.fullName,
                 phone: values.phone,
             });
@@ -62,7 +77,7 @@ export default function AdminProfilePage() {
                 title: "Profile Updated",
                 description: "Your information has been saved successfully.",
             });
-            setAdmin(prev => prev ? { ...prev, ...values } as Admin : null);
+            setDoctor(prev => prev ? { ...prev, ...values } : null);
             setIsEditing(false);
         } catch (error) {
             console.error("Profile update error:", error);
@@ -80,10 +95,10 @@ export default function AdminProfilePage() {
             <Card className="max-w-2xl mx-auto">
                 <CardHeader className="flex flex-row items-start justify-between">
                     <div>
-                        <CardTitle>Administrator Profile</CardTitle>
-                        <CardDescription>Your personal and contact information.</CardDescription>
+                        <CardTitle>Doctor Profile</CardTitle>
+                        <CardDescription>Your personal and professional information.</CardDescription>
                     </div>
-                     <Button variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)} disabled={loading || !admin}>
+                     <Button variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)} disabled={loading || !doctor}>
                         <Edit className="mr-2 h-4 w-4" />
                         {isEditing ? 'Cancel' : 'Edit Profile'}
                     </Button>
@@ -103,16 +118,16 @@ export default function AdminProfilePage() {
                                 <Skeleton className="h-8 w-full" />
                             </div>
                         </div>
-                    ) : admin ? (
+                    ) : doctor ? (
                         <div>
                              <div className="flex flex-col sm:flex-row items-center gap-6 mb-8">
                                 <Avatar className="h-24 w-24 text-3xl">
-                                    <AvatarImage src={`https://i.pravatar.cc/150?u=${admin.uid}`} alt="Admin Avatar" />
-                                    <AvatarFallback>{getInitials(admin.fullName)}</AvatarFallback>
+                                    <AvatarImage src={`https://i.pravatar.cc/150?u=${doctor.uid}`} alt="Doctor Avatar" />
+                                    <AvatarFallback>{getInitials(doctor.fullName)}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <h2 className="text-2xl font-bold font-headline">{admin.fullName}</h2>
-                                    <p className="text-muted-foreground">{admin.email}</p>
+                                    <h2 className="text-2xl font-bold font-headline">{doctor.fullName}</h2>
+                                    <p className="text-muted-foreground">{doctor.email}</p>
                                 </div>
                             </div>
 
@@ -153,21 +168,29 @@ export default function AdminProfilePage() {
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-4">
                                         <UserIcon className="h-5 w-5 text-muted-foreground" />
-                                        <span className="text-muted-foreground">{admin.fullName}</span>
+                                        <span className="text-muted-foreground">{doctor.fullName}</span>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <Mail className="h-5 w-5 text-muted-foreground" />
-                                        <span className="text-muted-foreground">{admin.email}</span>
+                                        <span className="text-muted-foreground">{doctor.email}</span>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <Phone className="h-5 w-5 text-muted-foreground" />
-                                        <span className="text-muted-foreground">{admin.phone || "Not set"}</span>
+                                        <span className="text-muted-foreground">{doctor.phone || "Not set"}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <Stethoscope className="h-5 w-5 text-muted-foreground" />
+                                        <span className="text-muted-foreground">Department: {doctor.department}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <Briefcase className="h-5 w-5 text-muted-foreground" />
+                                        <span className="text-muted-foreground">Experience: {doctor.experience} years</span>
                                     </div>
                                 </div>
                             )}
                         </div>
                     ) : (
-                        <p className="text-center text-muted-foreground">Could not load admin profile. Please try logging in again.</p>
+                        <p className="text-center text-muted-foreground">Could not load doctor profile. Please try logging in again.</p>
                     )}
                 </CardContent>
             </Card>

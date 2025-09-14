@@ -1,3 +1,4 @@
+
 "use client"
 
 import {
@@ -12,7 +13,8 @@ import {
   Pill,
   Package,
   Truck,
-  FileText
+  FileText,
+  UserCircle
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from 'next/navigation'
@@ -23,6 +25,7 @@ const pharmacistNav = [
   { href: "/pharmacist/prescriptions", icon: FileText, label: "Prescriptions" },
   { href: "/pharmacist/orders", icon: Package, label: "Orders" },
   { href: "/pharmacist/suppliers", icon: Truck, label: "Suppliers" },
+  { href: "/pharmacist/profile", icon: UserCircle, label: "Profile" },
 ]
 
 
