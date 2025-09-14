@@ -41,16 +41,16 @@ const features = [
 
 const Header = () => (
   <header className="absolute top-0 z-50 w-full bg-transparent">
-    <div className="container flex h-20 items-center">
+    <div className="container mx-auto flex h-20 items-center px-4">
       <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-        <span className="font-headline text-white">MediChain</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+        <span className="font-headline text-foreground">MediChain</span>
       </Link>
       <nav className="ml-auto flex items-center gap-2">
-        <Button variant="ghost" asChild className="text-white hover:bg-white/10 hover:text-white">
+        <Button variant="ghost" asChild>
           <Link href="/login">Log In</Link>
         </Button>
-        <Button asChild className="bg-white text-primary hover:bg-white/90">
+        <Button asChild>
           <Link href="/signup">Sign Up</Link>
         </Button>
       </nav>
@@ -60,7 +60,7 @@ const Header = () => (
 
 const Footer = () => (
     <footer className="border-t">
-        <div className="container py-12">
+        <div className="container mx-auto py-12 px-4">
             <div className="flex flex-col md:flex-row justify-between items-center">
                 <div className="flex items-center gap-2 font-bold text-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
@@ -76,47 +76,45 @@ export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero-medical-team');
   
   return (
-    <div className="flex min-h-screen flex-col">
-      
+    <div className="flex min-h-dvh flex-col bg-background">
+      <Header />
       <main className="flex-1">
-        <section className="relative flex h-[70vh] md:h-[80vh] w-full flex-col items-center justify-center">
-          {heroImage && (
-            <Image
-              src={heroImage.imageUrl}
-              alt={heroImage.description}
-              fill
-              style={{ objectFit: 'cover' }}
-              className="absolute inset-0 z-0"
-              data-ai-hint={heroImage.imageHint}
-              priority
-            />
-          )}
-          <div className="absolute inset-0 bg-black/50 z-10" />
-          
-          <Header />
-
-          <div className="relative z-20 flex flex-col items-center justify-center text-center text-white px-4">
-            <div className="space-y-6">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold tracking-tight">
+        <section className="w-full pt-20">
+          <div className="container mx-auto grid min-h-[80vh] items-center gap-12 px-4 md:grid-cols-2 md:px-6">
+            <div className="space-y-6 text-center md:text-left">
+              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
                 The Future of Hospital Management is Here.
               </h1>
-              <p className="text-lg text-white/80 max-w-2xl mx-auto">
+              <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                 MediChain is an intelligent, all-in-one Hospital Medical Information System (HMIS) designed to streamline operations, enhance patient care, and empower medical professionals.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" asChild className="bg-white text-primary hover:bg-white/90">
+              <div className="flex flex-col gap-4 min-[400px]:flex-row justify-center md:justify-start">
+                <Button size="lg" asChild>
                   <Link href="/login">Get Started</Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild className="border-white text-white hover:bg-white/10">
+                <Button size="lg" variant="outline" asChild>
                   <Link href="#features">Learn More</Link>
                 </Button>
               </div>
             </div>
+            {heroImage && (
+              <div className="relative mx-auto w-full max-w-2xl h-[400px] md:h-[500px]">
+                 <Image
+                    src={heroImage.imageUrl}
+                    alt={heroImage.description}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    className="rounded-xl shadow-2xl"
+                    data-ai-hint={heroImage.imageHint}
+                    priority
+                 />
+              </div>
+            )}
           </div>
         </section>
 
         <section id="features" className="bg-muted py-20 md:py-24">
-          <div className="container">
+          <div className="container mx-auto px-4 md:px-6">
             <div className="text-center space-y-4 mb-12">
               <h2 className="text-3xl md:text-4xl font-headline font-bold">A Comprehensive Solution</h2>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
