@@ -65,16 +65,6 @@ export default function StaffPage() {
     const role = form.watch("role");
 
     async function onSubmit(values: z.infer<typeof addStaffSchema>) {
-        const adminUser = auth.currentUser;
-        if (!adminUser) {
-            toast({
-                variant: "destructive",
-                title: "Authentication Error",
-                description: "You must be logged in as an admin to perform this action.",
-            });
-            return;
-        }
-
         try {
             // This approach of creating a user on the client has limitations (signs admin out).
             // A Cloud Function is the robust solution for a production app.

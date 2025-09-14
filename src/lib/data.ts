@@ -18,7 +18,6 @@ const initialReceptionists: Receptionist[] = [
     { id: 'rec1', uid: 'rec1', fullName: 'Ankit Singh', email: 'ankit.reception@hospital.com', phone: '9876543212', role: UserRole.Receptionist, createdAt: new Date() },
     { id: 'rec2', uid: 'rec2', fullName: 'Ankita Verma', email: 'ankita.reception@hospital.com', phone: '9876543213', role: UserRole.Receptionist, createdAt: new Date() },
     { id: 'rec3', uid: 'rec3', fullName: 'Rahul Das', email: 'rahul.reception@hospital.com', phone: '9876543214', role: UserRole.Receptionist, createdAt: new Date() },
-    { id: 'rec4', uid: 'rec4', fullName: 'Shweta Rao', email: 'shweta.reception@hospital.com', phone: '9876543215', role: UserRole.Receptionist, createdAt: new Date() },
 ];
 
 const initialDoctors: Doctor[] = [
@@ -26,14 +25,12 @@ const initialDoctors: Doctor[] = [
     { id: 'doc2', uid: 'doc2', fullName: 'Dr. Sneha Kapoor', email: 'sneha.neuro@hospital.com', phone: '9876543217', role: UserRole.Doctor, department: 'Neurology', experience: 8, createdAt: new Date() },
     { id: 'doc3', uid: 'doc3', fullName: 'Dr. Rohan Sinha', email: 'rohan.gp@hospital.com', phone: '9876543218', role: UserRole.Doctor, department: 'General Physician', experience: 5, createdAt: new Date() },
     { id: 'doc4', uid: 'doc4', fullName: 'Dr. Neha Gupta', email: 'neha.pedia@hospital.com', phone: '9876543219', role: UserRole.Doctor, department: 'Pediatrics', experience: 10, createdAt: new Date() },
-    { id: 'doc5', uid: 'doc5', fullName: 'Dr. Kiran Joshi', email: 'kiran.derma@hospital.com', phone: '9876543220', role: UserRole.Doctor, department: 'Dermatology', experience: 7, createdAt: new Date() },
 ];
 
 const initialPharmacists: Pharmacist[] = [
     { id: 'phar1', uid: 'phar1', fullName: 'Manoj Yadav', email: 'manoj.pharma@hospital.com', phone: '9876543221', role: UserRole.Pharmacist, createdAt: new Date() },
     { id: 'phar2', uid: 'phar2', fullName: 'Sakshi Patel', email: 'sakshi.pharma@hospital.com', phone: '9876543222', role: UserRole.Pharmacist, createdAt: new Date() },
     { id: 'phar3', uid: 'phar3', fullName: 'Deepak Nair', email: 'deepak.pharma@hospital.com', phone: '9876543223', role: UserRole.Pharmacist, createdAt: new Date() },
-    { id: 'phar4', uid: 'phar4', fullName: 'Vikram Malhotra', email: 'vikram.pharma@hospital.com', phone: '9876543224', role: UserRole.Pharmacist, createdAt: new Date() },
 ];
 
 // --- Other Mock Data (unchanged) ---
