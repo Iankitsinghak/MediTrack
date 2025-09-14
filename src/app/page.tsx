@@ -40,17 +40,17 @@ const features = [
 ];
 
 const Header = () => (
-  <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-    <div className="container flex h-14 items-center">
+  <header className="absolute top-0 z-50 w-full bg-transparent">
+    <div className="container flex h-20 items-center">
       <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-        <span className="font-headline">MediChain</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+        <span className="font-headline text-white">MediChain</span>
       </Link>
       <nav className="ml-auto flex items-center gap-2">
-        <Button variant="ghost" asChild>
+        <Button variant="ghost" asChild className="text-white hover:bg-white/10 hover:text-white">
           <Link href="/login">Log In</Link>
         </Button>
-        <Button asChild>
+        <Button asChild className="bg-white text-primary hover:bg-white/90">
           <Link href="/signup">Sign Up</Link>
         </Button>
       </nav>
@@ -77,38 +77,40 @@ export default function Home() {
   
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
+      
       <main className="flex-1">
-        <section className="container py-20 md:py-32">
-          <div className="grid lg:grid-cols-2 lg:items-center gap-12">
-            <div className="space-y-6 text-center lg:text-left">
+        <section className="relative flex h-[70vh] md:h-[80vh] w-full flex-col items-center justify-center">
+          {heroImage && (
+            <Image
+              src={heroImage.imageUrl}
+              alt={heroImage.description}
+              fill
+              style={{ objectFit: 'cover' }}
+              className="absolute inset-0 z-0"
+              data-ai-hint={heroImage.imageHint}
+              priority
+            />
+          )}
+          <div className="absolute inset-0 bg-black/50 z-10" />
+          
+          <Header />
+
+          <div className="relative z-20 flex flex-col items-center justify-center text-center text-white px-4">
+            <div className="space-y-6">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold tracking-tight">
                 The Future of Hospital Management is Here.
               </h1>
-              <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
+              <p className="text-lg text-white/80 max-w-2xl mx-auto">
                 MediChain is an intelligent, all-in-one Hospital Medical Information System (HMIS) designed to streamline operations, enhance patient care, and empower medical professionals.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button size="lg" asChild>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" asChild className="bg-white text-primary hover:bg-white/90">
                   <Link href="/login">Get Started</Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild>
+                <Button size="lg" variant="outline" asChild className="border-white text-white hover:bg-white/10">
                   <Link href="#features">Learn More</Link>
                 </Button>
               </div>
-            </div>
-            <div className="relative w-full aspect-[4/3] max-w-lg mx-auto lg:max-w-none">
-              {heroImage && (
-                <Image
-                  src={heroImage.imageUrl}
-                  alt={heroImage.description}
-                  fill
-                  style={{ objectFit: 'cover' }}
-                  className="rounded-xl shadow-2xl"
-                  data-ai-hint={heroImage.imageHint}
-                  priority
-                />
-              )}
             </div>
           </div>
         </section>
