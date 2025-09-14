@@ -100,17 +100,9 @@ export function EmailLoginForm() {
 
       toast({ title: "Login Successful", description: `Welcome back, ${userFullName}!` });
       
-      const userRoleDoc = await getDoc(doc(db, `${values.role.toLowerCase()}s`, user.uid));
-      if (!userRoleDoc.exists()) {
-        const fallbackDoc = await getDoc(doc(db, `${values.role.toLowerCase()}s`, values.staffId || ''));
-        if (!fallbackDoc.exists()) {
-            // This is a prototype limitation, we just log the error and proceed
-            console.error("User role not found in database for UID, but found for mock ID. Proceeding.");
-        }
-      }
-
       let dashboardPath = `/${values.role.toLowerCase()}/dashboard`;
       if (values.role === UserRole.Doctor) {
+        // Use the actual UID from authentication for the doctorId parameter
         dashboardPath += `?doctorId=${user.uid}`;
       }
       router.push(dashboardPath);
@@ -216,3 +208,5 @@ export function EmailLoginForm() {
     </Form>
   )
 }
+
+    
