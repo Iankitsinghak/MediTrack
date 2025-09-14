@@ -111,7 +111,6 @@ export default function AdminProfilePage() {
                         <div>
                              <div className="flex flex-col sm:flex-row items-center gap-6 mb-8">
                                 <Avatar className="h-24 w-24 text-3xl">
-                                    <AvatarImage src={`https://i.pravatar.cc/150?u=${admin.uid}`} alt="Admin Avatar" />
                                     <AvatarFallback>{getInitials(admin.fullName)}</AvatarFallback>
                                 </Avatar>
                                 <div>
