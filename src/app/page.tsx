@@ -80,15 +80,15 @@ export default function Home() {
       <Header />
       <main className="flex-1">
         <section className="container py-20 md:py-32">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
+          <div className="grid lg:grid-cols-2 lg:items-center gap-12">
+            <div className="space-y-6 text-center lg:text-left">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold tracking-tight">
                 The Future of Hospital Management is Here.
               </h1>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
                 MediChain is an intelligent, all-in-one Hospital Medical Information System (HMIS) designed to streamline operations, enhance patient care, and empower medical professionals.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Button size="lg" asChild>
                   <Link href="/login">Get Started</Link>
                 </Button>
@@ -97,13 +97,13 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-            <div className="relative">
+            <div className="relative w-full aspect-[4/3] max-w-lg mx-auto lg:max-w-none">
               {heroImage && (
                 <Image
                   src={heroImage.imageUrl}
                   alt={heroImage.description}
-                  width={600}
-                  height={400}
+                  fill
+                  style={{ objectFit: 'cover' }}
                   className="rounded-xl shadow-2xl"
                   data-ai-hint={heroImage.imageHint}
                   priority
