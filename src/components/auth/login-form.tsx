@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -12,10 +12,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { signInWithEmailAndPassword } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { auth, db } from "@/lib/firebase"
+import { doc, getDoc } from "firebase/firestore"
 import { UserRole } from "@/lib/types"
 import { useFirestore } from "@/hooks/use-firestore"
-import type { BaseUser, Doctor, Receptionist, Pharmacist, Admin } from "@/lib/types"
+import type { BaseUser } from "@/lib/types"
 import { Loader2 } from "lucide-react"
 
 const loginSchema = z.object({
@@ -70,9 +71,6 @@ export function EmailLoginForm() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
   const [isLoading, setIsLoading] = useState(false);
   
-  // We no longer fetch all data upfront.
-  // The data will be fetched inside the StaffSelector component when it renders.
-  
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -94,33 +92,9 @@ export function EmailLoginForm() {
     let userFullName: string | undefined;
     
     try {
-        if (values.role === UserRole.Admin) {
-            emailToLogin = values.email;
-            // For admin, we don't have the list upfront, so we'll just say "Admin"
-            userFullName = "Admin";
-        } else if (values.staffId) {
-            // This part is tricky without fetching data again. We'll proceed with auth
-            // and get the user details from the auth user object if possible, or make another fetch.
-            // For now, let's simplify and rely on Firestore for user info post-login.
-            // A better way is to fetch the single user doc after getting the ID.
-            // But for now, we'll keep it simple.
-            const userDocModule = await import("firebase/firestore");
-            const userDocRef = userDocModule.doc(auth.currentUser!.firestore, `${values.role.toLowerCase()}s`, values.staffId);
-            const userDoc = await userDocModule.getDoc(userDocRef);
-
-            if (!userDoc.exists() || !userDoc.data()?.email) {
-                 throw new Error("Could not find selected staff member's email.");
-            }
-            emailToLogin = userDoc.data()?.email;
-            userFullName = userDoc.data()?.fullName;
-        }
-
-        // A temporary workaround to get the email for non-admins
         if (values.role !== UserRole.Admin && values.staffId) {
-             const userDocModule = await import("firebase/firestore");
-             const { db } = await import("@/lib/firebase");
-             const docRef = userDocModule.doc(db, `${values.role.toLowerCase()}s`, values.staffId);
-             const docSnap = await userDocModule.getDoc(docRef);
+             const docRef = doc(db, `${values.role.toLowerCase()}s`, values.staffId);
+             const docSnap = await getDoc(docRef);
              if (docSnap.exists()) {
                  emailToLogin = docSnap.data().email;
                  userFullName = docSnap.data().fullName;
@@ -143,6 +117,7 @@ export function EmailLoginForm() {
         toast({ title: "Login Successful", description: `Welcome back, ${userFullName}!` });
       
         let dashboardPath = `/${values.role.toLowerCase()}/dashboard`;
+        // For doctors, pass their UID to fetch their specific data
         if (values.role === UserRole.Doctor) {
             dashboardPath += `?doctorId=${user.uid}`;
         }
