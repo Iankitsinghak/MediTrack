@@ -1,3 +1,6 @@
+
+"use client"
+
 import { Users, Banknote, BedDouble, Package, Activity } from "lucide-react"
 import { StatCard } from "./stat-card"
 import type { StatCardData } from "@/lib/types"

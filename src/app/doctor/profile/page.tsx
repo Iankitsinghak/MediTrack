@@ -55,9 +55,9 @@ export default function DoctorProfilePage() {
     }, [doctor, form]);
 
     const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-        if (!doctor || !doctor.id) return;
+        if (!doctor || !doctor.uid) return;
         try {
-            const doctorRef = doc(db, "doctors", doctor.id);
+            const doctorRef = doc(db, "doctors", doctor.uid);
             await updateDoc(doctorRef, {
                 fullName: values.fullName,
                 phone: values.phone,

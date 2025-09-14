@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { getPrescriptions, processPrescription } from "@/lib/data"
 import { format } from "date-fns"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -12,7 +11,6 @@ import { CheckCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function PrescriptionsPage() {
-    const router = useRouter();
     const { toast } = useToast();
     // In a real app, you'd use a state management library or re-fetch data.
     // For this prototype, we'll use a local state to force re-renders.

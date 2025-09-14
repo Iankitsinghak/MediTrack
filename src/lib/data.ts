@@ -5,7 +5,7 @@
 import { Doctor, Patient, UserRole, Medicine, Supplier, Prescription, MedicationOrder, Receptionist, Pharmacist, Admin, Appointment } from "./types";
 import { add, format, subDays } from "date-fns";
 import { db } from './firebase';
-import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, setDoc, doc, getDoc } from 'firebase/firestore';
 
 
 // --- Pre-populated Mock Staff Data for Display ---
@@ -50,13 +50,6 @@ const initialPatients: Patient[] = [
     { id: "PAT005", fullName: "Ethan Davis", dateOfBirth: "1978-07-22", gender: "Male", doctorId: "doc2" },
 ];
 
-const initialAppointments: any[] = [
-    { id: "APP001", patientId: "PAT001", patientName: "Alice Johnson", doctorId: "doc1", doctorName: "Dr. Arjun Khanna", date: new Date(new Date().setHours(10, 0, 0, 0)), reason: "Annual Checkup", status: "Scheduled" },
-    { id: "APP002", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Sneha Kapoor", date: new Date(new Date().setHours(10, 30, 0, 0)), reason: "Follow-up", status: "Scheduled" },
-    { id: "APP003", patientId: "PAT003", patientName: "Charlie Brown", doctorId: "doc3", doctorName: "Dr. Rohan Sinha", date: new Date(new Date().setHours(11, 0, 0, 0)), reason: "Completed" },
-    { id: "APP004", patientId: "PAT004", patientName: "Diana Miller", doctorId: "doc1", doctorName: "Dr. Arjun Khanna", date: new Date(new Date().setHours(12, 15, 0, 0)), reason: "New Patient Visit", status: "Scheduled" },
-    { id: "APP005", patientId: "PAT002", patientName: "Bob Williams", doctorId: "doc2", doctorName: "Dr. Sneha Kapoor", date: add(new Date(), {days: 1, hours: 14}), reason: "Test Results", status: "Scheduled" },
-];
 
 const initialSuppliers: Supplier[] = [
     { id: "SUP001", name: "Pharma Inc.", contactPerson: "John Doe", phone: "123-456-7890" },
@@ -122,12 +115,17 @@ export const registerPatient = async (patientData: Omit<Patient, 'id' | 'created
 };
 
 
-export const scheduleAppointment = async (appointmentData: Omit<Appointment, 'id' | 'patientName' | 'status' | 'createdAt'> & { doctorName: string }) => {
+export const scheduleAppointment = async (appointmentData: Omit<Appointment, 'id' | 'status' | 'createdAt'>) => {
     
-    const docRef = doc(db, "patients", appointmentData.patientId);
+    const patientDocRef = doc(db, "patients", appointmentData.patientId);
+    const patientDoc = await getDoc(patientDocRef);
+    if (!patientDoc.exists()) {
+        throw new Error("Patient not found");
+    }
+
     const newAppointment = {
         ...appointmentData,
-        patientName: "Patient", // In a real app, you might fetch this, but for now it's ok
+        patientName: patientDoc.data().fullName,
         status: 'Scheduled',
         createdAt: serverTimestamp(),
     };
