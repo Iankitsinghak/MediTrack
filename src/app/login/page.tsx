@@ -16,9 +16,7 @@ export default function LoginPage() {
           <CardDescription>Select your role and name to sign in.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Suspense fallback={<div>Loading...</div>}>
-            <EmailLoginForm />
-          </Suspense>
+          <EmailLoginForm />
           
           <div className="mt-4 text-center text-sm">
             Need an admin account?{" "}

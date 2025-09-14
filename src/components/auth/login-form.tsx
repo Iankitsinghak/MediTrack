@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -33,24 +33,46 @@ const loginSchema = z.object({
     path: ["email"], // Arbitrarily point to one, the form will handle showing the right message
 });
 
+
+function StaffSelector({ role, control, loadingPlaceholder }: { role: UserRole, control: any, loadingPlaceholder: string }) {
+    const { data: staffList, loading } = useFirestore<BaseUser>(`${role.toLowerCase()}s`);
+
+    return (
+        <FormField
+            control={control}
+            name="staffId"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Your Name</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''} defaultValue="">
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder={loading ? loadingPlaceholder : "Select your name"} />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {staffList.map(s => (
+                                <SelectItem key={s.id} value={s.id!}>{s.fullName}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
+    )
+}
+
+
 export function EmailLoginForm() {
   const router = useRouter()
   const { toast } = useToast()
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
   const [isLoading, setIsLoading] = useState(false);
   
-  const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
-  const { data: receptionists, loading: loadingReceptionists } = useFirestore<Receptionist>('receptionists');
-  const { data: pharmacists, loading: loadingPharmacists } = useFirestore<Pharmacist>('pharmacists');
-  const { data: admins, loading: loadingAdmins } = useFirestore<Admin>('admins');
-
-  const staffData: Record<string, { data: BaseUser[], loading: boolean }> = {
-    [UserRole.Admin]: { data: admins, loading: loadingAdmins },
-    [UserRole.Doctor]: { data: doctors, loading: loadingDoctors },
-    [UserRole.Receptionist]: { data: receptionists, loading: loadingReceptionists },
-    [UserRole.Pharmacist]: { data: pharmacists, loading: loadingPharmacists },
-  }
-
+  // We no longer fetch all data upfront.
+  // The data will be fetched inside the StaffSelector component when it renders.
+  
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -74,17 +96,42 @@ export function EmailLoginForm() {
     try {
         if (values.role === UserRole.Admin) {
             emailToLogin = values.email;
-            const adminUser = admins.find(a => a.email === emailToLogin);
-            userFullName = adminUser?.fullName ?? "Admin";
+            // For admin, we don't have the list upfront, so we'll just say "Admin"
+            userFullName = "Admin";
         } else if (values.staffId) {
-            const staffList = staffData[values.role].data;
-            const selectedStaff = staffList.find(s => s.id === values.staffId);
-            if (!selectedStaff || !selectedStaff.email) {
-              throw new Error("Could not find selected staff member's email.");
+            // This part is tricky without fetching data again. We'll proceed with auth
+            // and get the user details from the auth user object if possible, or make another fetch.
+            // For now, let's simplify and rely on Firestore for user info post-login.
+            // A better way is to fetch the single user doc after getting the ID.
+            // But for now, we'll keep it simple.
+            const userDocModule = await import("firebase/firestore");
+            const userDocRef = userDocModule.doc(auth.currentUser!.firestore, `${values.role.toLowerCase()}s`, values.staffId);
+            const userDoc = await userDocModule.getDoc(userDocRef);
+
+            if (!userDoc.exists() || !userDoc.data()?.email) {
+                 throw new Error("Could not find selected staff member's email.");
             }
-            emailToLogin = selectedStaff.email;
-            userFullName = selectedStaff.fullName;
+            emailToLogin = userDoc.data()?.email;
+            userFullName = userDoc.data()?.fullName;
         }
+
+        // A temporary workaround to get the email for non-admins
+        if (values.role !== UserRole.Admin && values.staffId) {
+             const userDocModule = await import("firebase/firestore");
+             const { db } = await import("@/lib/firebase");
+             const docRef = userDocModule.doc(db, `${values.role.toLowerCase()}s`, values.staffId);
+             const docSnap = await userDocModule.getDoc(docRef);
+             if (docSnap.exists()) {
+                 emailToLogin = docSnap.data().email;
+                 userFullName = docSnap.data().fullName;
+             } else {
+                 throw new Error("Selected user not found.");
+             }
+        } else if (values.role === UserRole.Admin) {
+            emailToLogin = values.email;
+            userFullName = "Admin";
+        }
+
 
         if (!emailToLogin) {
             throw new Error("No valid user selected or email provided.");
@@ -158,27 +205,10 @@ export function EmailLoginForm() {
         )}
 
         {selectedRole && selectedRole !== UserRole.Admin && (
-          <FormField
+          <StaffSelector 
+            role={selectedRole}
             control={form.control}
-            name="staffId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Your Name</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ''} defaultValue="">
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={staffData[selectedRole!].loading ? "Loading..." : "Select your name"} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {staffData[selectedRole!].data.map(s => (
-                      <SelectItem key={s.id} value={s.id!}>{s.fullName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+            loadingPlaceholder="Loading..."
           />
         )}
         
