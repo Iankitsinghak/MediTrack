@@ -173,7 +173,7 @@ export function EmailLoginForm() {
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder={roleToStaffList[selectedRole!].loading ? "Loading..." : "Select your name"} />
-                    </Trigger>
+                    </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {roleToStaffList[selectedRole!].data.map(s => (
