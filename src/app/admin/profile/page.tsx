@@ -55,9 +55,9 @@ export default function AdminProfilePage() {
     }, [admin, form]);
 
     const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-        if (!admin || !admin.id) return;
+        if (!admin || !admin.uid) return;
         try {
-            const adminRef = doc(db, "admins", admin.id);
+            const adminRef = doc(db, "admins", admin.uid);
             await updateDoc(adminRef, {
                 fullName: values.fullName,
                 phone: values.phone,

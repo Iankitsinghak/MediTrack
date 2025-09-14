@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useAuthUser } from "@/hooks/use-auth-user"
 import type { Admin } from "@/lib/types"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function getInitials(name: string = "") {
   const names = name.split(' ');
@@ -39,7 +40,10 @@ function AdminHeader() {
     if (loading) {
         return (
             <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-                {/* Skeleton or loading state can be enhanced here */}
+                <div className="relative ml-auto flex-1 md:grow-0">
+                    <Skeleton className="h-8 w-[200px] lg:w-[336px]" />
+                </div>
+                 <Skeleton className="h-10 w-10 rounded-full" />
             </header>
         )
     }

@@ -15,29 +15,29 @@ export function useAuthUser<T extends BaseUser>(collectionName: string) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser: User | null) => {
       if (authUser) {
+        setLoading(true);
         try {
           const docRef = doc(db, collectionName, authUser.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            setUser({ id: docSnap.id, ...docSnap.data() } as T);
+            setUser({ ...docSnap.data(), id: docSnap.id, uid: authUser.uid } as T);
           } else {
-            // This case might happen if the user is authenticated but their profile
-            // is not in the expected collection.
-            setError(new Error("User profile not found in the specified collection."));
+            setError(new Error(`User profile not found in '${collectionName}'.`));
+            setUser(null);
           }
         } catch (e: any) {
+          console.error("useAuthUser hook error:", e);
           setError(e);
+          setUser(null);
         } finally {
           setLoading(false);
         }
       } else {
-        // No user is signed in.
         setUser(null);
         setLoading(false);
       }
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, [collectionName]);
 
