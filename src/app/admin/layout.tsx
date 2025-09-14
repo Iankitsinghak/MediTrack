@@ -1,3 +1,4 @@
+
 import { SidebarNav } from "@/components/dashboard/admin/sidebar-nav"
 import {
   SidebarProvider,
@@ -56,7 +57,7 @@ export default function AdminLayout({
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/admin/profile">Profile</Link></DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild><Link href="/">Logout</Link></DropdownMenuItem>
