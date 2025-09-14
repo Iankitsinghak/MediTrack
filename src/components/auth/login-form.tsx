@@ -12,11 +12,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { signInWithEmailAndPassword } from "firebase/auth"
-import { auth, db } from "@/lib/firebase"
+import { auth } from "@/lib/firebase"
 import { UserRole } from "@/lib/types"
 import { useFirestore } from "@/hooks/use-firestore"
 import type { BaseUser } from "@/lib/types"
-import { getDoc, doc } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 
 const loginSchema = z.object({
@@ -71,11 +70,13 @@ export function EmailLoginForm() {
     setIsLoading(true);
     let emailToLogin: string | undefined;
     let userFullName: string | undefined;
+    let staffId: string | undefined;
 
     if (values.role === UserRole.Admin) {
         emailToLogin = values.email;
         const adminUser = admins.find(a => a.email === emailToLogin);
         userFullName = adminUser?.fullName ?? "Admin";
+        staffId = adminUser?.uid;
     } else if (values.staffId) {
         const staffList = roleToStaffList[values.role].data;
         const selectedStaff = staffList.find(s => s.id === values.staffId);
@@ -86,6 +87,7 @@ export function EmailLoginForm() {
         }
         emailToLogin = selectedStaff.email;
         userFullName = selectedStaff.fullName;
+        staffId = selectedStaff.uid;
     }
 
     if (!emailToLogin) {
@@ -102,7 +104,6 @@ export function EmailLoginForm() {
       
       let dashboardPath = `/${values.role.toLowerCase()}/dashboard`;
       if (values.role === UserRole.Doctor) {
-        // Use the actual UID from authentication for the doctorId parameter
         dashboardPath += `?doctorId=${user.uid}`;
       }
       router.push(dashboardPath);
@@ -208,5 +209,3 @@ export function EmailLoginForm() {
     </Form>
   )
 }
-
-    
