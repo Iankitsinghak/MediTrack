@@ -105,6 +105,7 @@ export default function Home() {
                   height={400}
                   className="rounded-xl shadow-2xl"
                   data-ai-hint={heroImage.imageHint}
+                  priority
                 />
               )}
             </div>

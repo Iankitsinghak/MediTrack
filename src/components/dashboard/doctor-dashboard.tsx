@@ -1,7 +1,14 @@
 import { Users, CalendarDays, Activity, TrendingUp, TrendingDown } from "lucide-react"
-import { PatientSummarizer } from "./patient-summarizer"
+import dynamic from 'next/dynamic';
 import { StatCard } from "./stat-card"
 import type { StatCardData } from "@/lib/types"
+import { Skeleton } from "../ui/skeleton";
+
+const PatientSummarizer = dynamic(() => import('./patient-summarizer').then(mod => mod.PatientSummarizer), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[450px] w-full" />,
+});
+
 
 const doctorStats: StatCardData[] = [
   {
