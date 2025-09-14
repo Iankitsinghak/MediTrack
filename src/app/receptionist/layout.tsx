@@ -27,7 +27,7 @@ import type { Receptionist } from "@/lib/types"
 
 function getInitials(name: string = "") {
   const names = name.split(' ');
-  if (names.length > 1) {
+  if (names.length > 1 && names[names.length - 1]) {
     return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
   }
   return name.charAt(0).toUpperCase();
@@ -45,7 +45,7 @@ function ReceptionistHeader() {
     }
 
     const profileLink = `/receptionist/profile`;
-    const supportLink = `/support?role=receptionist`;
+    const supportLink = `/support`;
 
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">

@@ -22,15 +22,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import { doc, getDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { useAuthUser } from "@/hooks/use-auth-user"
 import type { Doctor } from "@/lib/types"
 
 function getInitials(name: string = "") {
   const names = name.split(' ');
-  if (names.length > 1) {
+  if (names.length > 1 && names[names.length - 1]) {
     return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
   }
   return name.charAt(0).toUpperCase();
@@ -38,24 +35,9 @@ function getInitials(name: string = "") {
 
 
 function DoctorHeader() {
-  const searchParams = useSearchParams()
-  const doctorId = searchParams.get('doctorId')
-  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const { user: doctor, loading } = useAuthUser<Doctor>('doctors');
 
-  useEffect(() => {
-    if (doctorId) {
-      const fetchDoctor = async () => {
-        const docRef = doc(db, "doctors", doctorId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setDoctor({ id: docSnap.id, ...docSnap.data() } as Doctor);
-        }
-      }
-      fetchDoctor();
-    }
-  }, [doctorId]);
-
-  if (!doctor) {
+  if (loading || !doctor) {
     return (
        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
         {/* Skeleton or loading state */}
@@ -63,8 +45,8 @@ function DoctorHeader() {
     )
   }
 
-  const profileLink = `/doctor/profile?doctorId=${doctorId}`;
-  const supportLink = `/support?role=doctor&id=${doctorId}`;
+  const profileLink = `/doctor/profile`;
+  const supportLink = `/support`;
 
 
   return (

@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import type { Doctor } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useSearchParams } from "next/navigation";
+import { useAuthUser } from "@/hooks/use-auth-user";
 
 const profileSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters."),
@@ -25,7 +25,7 @@ const profileSchema = z.object({
 
 function getInitials(name: string = "") {
   const names = name.split(' ');
-  if (names.length > 1) {
+  if (names.length > 1 && names[names.length - 1]) {
     return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
   }
   return name.charAt(0).toUpperCase();
@@ -33,10 +33,7 @@ function getInitials(name: string = "") {
 
 
 export default function DoctorProfilePage() {
-    const searchParams = useSearchParams();
-    const doctorId = searchParams.get('doctorId');
-    const [doctor, setDoctor] = useState<Doctor | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { user: doctor, loading, setUser: setDoctor } = useAuthUser<Doctor>('doctors');
     const [isEditing, setIsEditing] = useState(false);
     const { toast } = useToast();
 
@@ -45,25 +42,13 @@ export default function DoctorProfilePage() {
     });
 
     useEffect(() => {
-        if (doctorId) {
-            const fetchDoctorData = async (uid: string) => {
-                const docRef = doc(db, "doctors", uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const doctorData = { id: docSnap.id, ...docSnap.data() } as Doctor;
-                    setDoctor(doctorData);
-                    form.reset({
-                        fullName: doctorData.fullName,
-                        phone: doctorData.phone,
-                    });
-                }
-                setLoading(false);
-            };
-            fetchDoctorData(doctorId);
-        } else {
-            setLoading(false);
+        if (doctor) {
+            form.reset({
+                fullName: doctor.fullName,
+                phone: doctor.phone,
+            });
         }
-    }, [doctorId, form]);
+    }, [doctor, form]);
 
     const onSubmit = async (values: z.infer<typeof profileSchema>) => {
         if (!doctor) return;
@@ -77,7 +62,7 @@ export default function DoctorProfilePage() {
                 title: "Profile Updated",
                 description: "Your information has been saved successfully.",
             });
-            setDoctor(prev => prev ? { ...prev, ...values } : null);
+            setDoctor(prev => prev ? { ...prev, ...values } as Doctor : null);
             setIsEditing(false);
         } catch (error) {
             console.error("Profile update error:", error);
