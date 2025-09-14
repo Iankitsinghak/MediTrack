@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "hero-medical-team",
-      "description": "An architectural shot of the Eiffel Tower in Paris.",
-      "imageUrl": "https://picsum.photos/seed/eiffel/600/400",
-      "imageHint": "eiffel tower"
+      "description": "A picture of the Howrah Bridge in Kolkata.",
+      "imageUrl": "https://picsum.photos/seed/howrah/600/400",
+      "imageHint": "howrah bridge"
     }
   ]
 }
