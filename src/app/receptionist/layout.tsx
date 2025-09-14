@@ -1,3 +1,4 @@
+
 import { SidebarNav } from "@/components/dashboard/receptionist/sidebar-nav"
 import {
   SidebarProvider,
@@ -48,7 +49,6 @@ export default function ReceptionistLayout({
                 className="overflow-hidden rounded-full"
               >
                 <Avatar>
-                  <AvatarImage src="https://picsum.photos/seed/receptionist-avatar/40/40" alt="Receptionist avatar" />
                   <AvatarFallback>R</AvatarFallback>
                 </Avatar>
               </Button>

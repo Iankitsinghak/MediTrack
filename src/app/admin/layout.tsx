@@ -49,7 +49,6 @@ export default function AdminLayout({
                 className="overflow-hidden rounded-full"
               >
                 <Avatar>
-                  <AvatarImage src="https://picsum.photos/seed/admin-avatar/40/40" alt="Admin avatar" />
                   <AvatarFallback>A</AvatarFallback>
                 </Avatar>
               </Button>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Suspense } from "react"
@@ -27,6 +28,15 @@ import type { Doctor } from "@/lib/types"
 import { doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useEffect, useState } from "react"
+
+function getInitials(name: string = "") {
+  const names = name.split(' ');
+  if (names.length > 1) {
+    return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
+  }
+  return name.charAt(0).toUpperCase();
+}
+
 
 function DoctorHeader() {
   const searchParams = useSearchParams()
@@ -73,8 +83,7 @@ function DoctorHeader() {
             className="overflow-hidden rounded-full"
           >
             <Avatar>
-              <AvatarImage src={`https://picsum.photos/seed/${doctor.id}/40/40`} alt={`${doctor.fullName} avatar`} />
-              <AvatarFallback>{doctor.fullName?.charAt(0)}</AvatarFallback>
+              <AvatarFallback>{getInitials(doctor.fullName)}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>

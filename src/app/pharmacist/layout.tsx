@@ -1,3 +1,4 @@
+
 import { SidebarNav } from "@/components/dashboard/pharmacist/sidebar-nav"
 import {
   SidebarProvider,
@@ -48,7 +49,6 @@ export default function PharmacistLayout({
                 className="overflow-hidden rounded-full"
               >
                 <Avatar>
-                  <AvatarImage src="https://picsum.photos/seed/pharmacist-avatar/40/40" alt="Pharmacist avatar" />
                   <AvatarFallback>Ph</AvatarFallback>
                 </Avatar>
               </Button>
