@@ -1,5 +1,7 @@
+
 "use client"
 
+import { useState } from "react";
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
@@ -12,6 +14,7 @@ import { UserRole } from "@/lib/types"
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { Loader2 } from "lucide-react";
 
 const adminSignupSchema = z.object({
   fullName: z.string().min(3, "Full name is required"),
@@ -23,6 +26,7 @@ const adminSignupSchema = z.object({
 export function AdminSignupForm() {
     const { toast } = useToast();
     const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false);
 
     const form = useForm<z.infer<typeof adminSignupSchema>>({
         resolver: zodResolver(adminSignupSchema),
@@ -30,6 +34,7 @@ export function AdminSignupForm() {
     });
 
     async function onSubmit(values: z.infer<typeof adminSignupSchema>) {
+        setIsLoading(true);
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
@@ -63,6 +68,8 @@ export function AdminSignupForm() {
                 title: "Signup Failed",
                 description: description,
             });
+        } finally {
+            setIsLoading(false);
         }
     }
 
@@ -102,7 +109,10 @@ export function AdminSignupForm() {
                         </FormItem>
                     )}
                 />
-                <Button type="submit" className="w-full">Create Admin Account</Button>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isLoading ? "Creating Account..." : "Create Admin Account"}
+                </Button>
             </form>
         </Form>
     );

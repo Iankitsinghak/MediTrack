@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -16,6 +17,7 @@ import { UserRole } from "@/lib/types"
 import { useFirestore } from "@/hooks/use-firestore"
 import type { BaseUser } from "@/lib/types"
 import { getDoc, doc } from "firebase/firestore"
+import { Loader2 } from "lucide-react"
 
 const loginSchema = z.object({
   role: z.nativeEnum(UserRole),
@@ -36,6 +38,7 @@ export function EmailLoginForm() {
   const router = useRouter()
   const { toast } = useToast()
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
+  const [isLoading, setIsLoading] = useState(false);
   
   const { data: doctors, loading: loadingDoctors } = useFirestore<BaseUser>('doctors');
   const { data: receptionists, loading: loadingReceptionists } = useFirestore<BaseUser>('receptionists');
@@ -69,6 +72,7 @@ export function EmailLoginForm() {
   };
   
   async function onSubmit(values: z.infer<typeof loginSchema>) {
+    setIsLoading(true);
     let emailToLogin: string | undefined;
     let userFullName: string | undefined;
 
@@ -81,6 +85,7 @@ export function EmailLoginForm() {
         const selectedStaff = staffList.find(s => s.id === values.staffId);
         if (!selectedStaff || !selectedStaff.email) {
           toast({ variant: "destructive", title: "Login Error", description: "Could not find selected staff member's email." });
+          setIsLoading(false);
           return;
         }
         emailToLogin = selectedStaff.email;
@@ -89,6 +94,7 @@ export function EmailLoginForm() {
 
     if (!emailToLogin) {
          toast({ variant: "destructive", title: "Login Error", description: "No valid user selected or email provided." });
+         setIsLoading(false);
          return;
     }
 
@@ -121,6 +127,8 @@ export function EmailLoginForm() {
         title: "Login Failed",
         description: errorMessage,
       });
+    } finally {
+        setIsLoading(false);
     }
   }
 
@@ -201,8 +209,9 @@ export function EmailLoginForm() {
             />
         )}
 
-        <Button type="submit" className="w-full" disabled={!form.formState.isValid}>
-          Sign In
+        <Button type="submit" className="w-full" disabled={!form.formState.isValid || isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading ? "Signing In..." : "Sign In"}
         </Button>
       </form>
     </Form>
