@@ -39,19 +39,23 @@ export default function PharmacistProfilePage() {
 
     const form = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
+        defaultValues: {
+            fullName: "",
+            phone: "",
+        },
     });
 
     useEffect(() => {
         if (pharmacist) {
             form.reset({
-                fullName: pharmacist.fullName,
-                phone: pharmacist.phone,
+                fullName: pharmacist.fullName || "",
+                phone: pharmacist.phone || "",
             });
         }
     }, [pharmacist, form]);
 
     const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-        if (!pharmacist) return;
+        if (!pharmacist || !pharmacist.id) return;
         try {
             const pharmacistRef = doc(db, "pharmacists", pharmacist.id);
             await updateDoc(pharmacistRef, {

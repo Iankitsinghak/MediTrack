@@ -25,7 +25,7 @@ const profileSchema = z.object({
 
 function getInitials(name: string = "") {
   const names = name.split(' ');
-  if (names.length > 1) {
+  if (names.length > 1 && names[names.length - 1]) {
     return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
   }
   return name.charAt(0).toUpperCase();
@@ -39,19 +39,23 @@ export default function AdminProfilePage() {
 
     const form = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
+        defaultValues: {
+            fullName: "",
+            phone: "",
+        },
     });
 
     useEffect(() => {
         if (admin) {
             form.reset({
-                fullName: admin.fullName,
-                phone: admin.phone,
+                fullName: admin.fullName || "",
+                phone: admin.phone || "",
             });
         }
     }, [admin, form]);
 
     const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-        if (!admin) return;
+        if (!admin || !admin.id) return;
         try {
             const adminRef = doc(db, "admins", admin.id);
             await updateDoc(adminRef, {

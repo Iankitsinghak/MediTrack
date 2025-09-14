@@ -39,19 +39,23 @@ export default function ReceptionistProfilePage() {
 
     const form = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
+        defaultValues: {
+            fullName: "",
+            phone: "",
+        },
     });
 
     useEffect(() => {
         if (receptionist) {
             form.reset({
-                fullName: receptionist.fullName,
-                phone: receptionist.phone,
+                fullName: receptionist.fullName || "",
+                phone: receptionist.phone || "",
             });
         }
     }, [receptionist, form]);
 
     const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-        if (!receptionist) return;
+        if (!receptionist || !receptionist.id) return;
         try {
             const receptionistRef = doc(db, "receptionists", receptionist.id);
             await updateDoc(receptionistRef, {

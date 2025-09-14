@@ -39,19 +39,23 @@ export default function DoctorProfilePage() {
 
     const form = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
+        defaultValues: {
+            fullName: "",
+            phone: "",
+        },
     });
 
     useEffect(() => {
         if (doctor) {
             form.reset({
-                fullName: doctor.fullName,
-                phone: doctor.phone,
+                fullName: doctor.fullName || "",
+                phone: doctor.phone || "",
             });
         }
     }, [doctor, form]);
 
     const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-        if (!doctor) return;
+        if (!doctor || !doctor.id) return;
         try {
             const doctorRef = doc(db, "doctors", doctor.id);
             await updateDoc(doctorRef, {
