@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "hero-medical-team",
-      "description": "A diverse team of medical professionals looking at a tablet, conveying collaboration and technology in healthcare.",
-      "imageUrl": "https://picsum.photos/seed/med-team/600/400",
-      "imageHint": "medical team"
+      "description": "An architectural shot of the Eiffel Tower in Paris.",
+      "imageUrl": "https://picsum.photos/seed/eiffel/600/400",
+      "imageHint": "eiffel tower"
     }
   ]
 }
