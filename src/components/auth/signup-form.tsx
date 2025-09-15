@@ -93,7 +93,7 @@ export function AdminSignupForm() {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Email</FormLabel>
-                            <FormControl><Input type="email" placeholder="admin@medichain.com" {...field} /></FormControl>
+                            <FormControl><Input type="email" placeholder="admin@meditrack.com" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}

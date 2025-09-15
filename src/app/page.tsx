@@ -44,7 +44,7 @@ const Header = () => (
     <div className="container mx-auto flex h-20 items-center px-4">
       <Link href="/" className="flex items-center gap-2 font-bold text-lg">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-        <span className="font-headline text-foreground">MediChain</span>
+        <span className="font-headline text-foreground">MediTrack</span>
       </Link>
       <nav className="ml-auto flex items-center gap-2">
         <Button variant="ghost" asChild>
@@ -64,9 +64,9 @@ const Footer = () => (
             <div className="flex flex-col md:flex-row justify-between items-center">
                 <div className="flex items-center gap-2 font-bold text-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-                    <span className="font-headline">MediChain</span>
+                    <span className="font-headline">MediTrack</span>
                 </div>
-                <p className="text-sm text-muted-foreground mt-4 md:mt-0">© 2024 MediChain. All rights reserved.</p>
+                <p className="text-sm text-muted-foreground mt-4 md:mt-0">© 2024 MediTrack. All rights reserved.</p>
             </div>
         </div>
     </footer>
@@ -86,7 +86,7 @@ export default function Home() {
                 The Future of Hospital Management is Here.
               </h1>
               <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                MediChain is an intelligent, all-in-one Hospital Medical Information System (HMIS) designed to streamline operations, enhance patient care, and empower medical professionals.
+                MediTrack is an intelligent, all-in-one Hospital Medical Information System (HMIS) designed to streamline operations, enhance patient care, and empower medical professionals.
               </p>
               <div className="flex flex-col gap-4 min-[400px]:flex-row justify-center md:justify-start">
                 <Button size="lg" asChild>
@@ -118,7 +118,7 @@ export default function Home() {
             <div className="text-center space-y-4 mb-12">
               <h2 className="text-3xl md:text-4xl font-headline font-bold">A Comprehensive Solution</h2>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                From patient intake to AI-driven insights, MediChain provides the tools you need for a modern healthcare facility.
+                From patient intake to AI-driven insights, MediTrack provides the tools you need for a modern healthcare facility.
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">

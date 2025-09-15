@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { signInWithEmailAndPassword } from "firebase/auth"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc } from "firebase/firestore"
+import { doc, getDoc, collection } from "firebase/firestore"
 import { UserRole } from "@/lib/types"
 import { useFirestore } from "@/hooks/use-firestore"
 import type { BaseUser } from "@/lib/types"
@@ -172,7 +172,7 @@ export function EmailLoginForm() {
               render={({ field }) => (
                   <FormItem>
                       <FormLabel>Admin Email</FormLabel>
-                      <FormControl><Input type="email" placeholder="admin@medichain.com" {...field} /></FormControl>
+                      <FormControl><Input type="email" placeholder="admin@meditrack.com" {...field} /></FormControl>
                       <FormMessage />
                   </FormItem>
               )}
@@ -180,11 +180,13 @@ export function EmailLoginForm() {
         )}
 
         {selectedRole && selectedRole !== UserRole.Admin && (
-          <StaffSelector 
-            role={selectedRole}
-            control={form.control}
-            loadingPlaceholder="Loading..."
-          />
+          <Suspense fallback={<Loader2 className="animate-spin" />}>
+            <StaffSelector 
+              role={selectedRole}
+              control={form.control}
+              loadingPlaceholder="Loading..."
+            />
+          </Suspense>
         )}
         
         {selectedRole && (

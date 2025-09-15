@@ -168,7 +168,7 @@ export default function StaffPage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Login Email</FormLabel>
-                                            <FormControl><Input type="email" placeholder="staff@medichain.com" {...field} /></FormControl>
+                                            <FormControl><Input type="email" placeholder="staff@meditrack.com" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -322,5 +322,3 @@ export default function StaffPage() {
         </div>
     )
 }
-
-    

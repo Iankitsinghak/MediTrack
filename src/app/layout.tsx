@@ -11,7 +11,7 @@ const ptSans = PT_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'MediChain - Hospital Medical Information System',
+  title: 'MediTrack - Hospital Medical Information System',
   description: 'A modern, full-featured HMIS built with Next.js and Firebase.',
 };
 

@@ -29,7 +29,7 @@ export default function SupportPage() {
             <div className="flex flex-col items-center w-full max-w-4xl">
                 <Link href="/" className="flex items-center gap-2 font-bold text-2xl mb-8">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-                    <span className="font-headline">MediChain</span>
+                    <span className="font-headline">MediTrack</span>
                 </Link>
                 <div className="grid md:grid-cols-2 gap-8 w-full">
                     <Card className="shadow-lg">
@@ -46,8 +46,8 @@ export default function SupportPage() {
                                 <div>
                                     <h3 className="font-semibold">Email Support</h3>
                                     <p className="text-muted-foreground text-sm mb-2">Best for non-urgent inquiries. We'll get back to you within 24 hours.</p>
-                                    <a href="mailto:support@medichain.example.com" className="text-primary font-medium hover:underline text-sm break-all">
-                                        support@medichain.example.com
+                                    <a href="mailto:support@meditrack.example.com" className="text-primary font-medium hover:underline text-sm break-all">
+                                        support@meditrack.example.com
                                     </a>
                                 </div>
                             </div>
