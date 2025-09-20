@@ -1,10 +1,5 @@
 
 import { Suspense } from 'react';
-<<<<<<< HEAD
-
-export default function Layout({ children }: { children: React.ReactNode }) {
-  return <Suspense>{children}</Suspense>;
-=======
 import { Skeleton } from '@/components/ui/skeleton';
 
 function Loading() {
@@ -29,5 +24,4 @@ export default function AppointmentsLayout({
             {children}
         </Suspense>
     )
->>>>>>> 09e58a52ae866bd026c9e020bbe928a579c5dc40
 }
