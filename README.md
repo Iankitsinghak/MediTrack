@@ -1,62 +1,64 @@
-# MediTrack - Intelligent Hospital Management System
+# 🏥 MediTrack – An Intelligent Hospital Management System
 
-MediTrack is a modern, full-featured Hospital Medical Information System (HMIS) designed to streamline operations, enhance patient care, and empower medical professionals. Built with a cutting-edge technology stack, it provides a seamless and responsive user experience across different roles within a healthcare facility.
+MediTrack is a **modern, AI-powered, real-time hospital management system** designed to centralize hospital operations, reduce inefficiencies, and improve patient care.  
+It provides distinct, **role-based dashboards** for Admins, Receptionists, Doctors, and Pharmacists, while leveraging **AI (Gemini via Genkit)** for productivity features like medical note summarization and voice-to-text prescriptions.
 
-## Core Features
+---
 
-- **Role-Based Authentication**: Secure access control with distinct dashboards and permissions for four key roles: **Admin**, **Doctor**, **Receptionist**, and **Pharmacist**.
-- **Dynamic Dashboards**: Each role has a tailored dashboard displaying essential statistics and quick actions relevant to their responsibilities. For example, doctors see appointment stats, while pharmacists see low-stock alerts.
-- **AI-Powered Patient Summarization**: A powerful Genkit-based tool for doctors to automatically summarize raw consultation notes into structured data, identifying the patient's condition, treatment plan, and next steps.
-- **Real-Time Appointment Scheduling**: A complete system for receptionists to schedule, view, and manage patient appointments in a real-time calendar interface.
-- **Medication Stock Management**: An inventory system for pharmacists to track medication stock levels, receive automated low-stock alerts, and manage suppliers.
-- **Staff & Patient Management**: Admins can manage staff accounts, and receptionists can register new patients, assign them to doctors, and book their initial appointments.
+## 🚀 Problem Statement
+Traditional hospital management systems are:
+- Fragmented and outdated
+- Slow to synchronize across departments
+- Inefficient for doctors and frustrating for patients
 
-## Tech Stack
+---
 
-This project is built with a modern, performant, and scalable technology stack:
+## 💡 Our Solution
+MediTrack solves this by:
+- Centralizing hospital operations into one platform
+- Offering **real-time synchronization** with Firebase
+- Providing **AI tools** to assist doctors
+- Building on a **scalable, secure, and modern tech stack**
 
-- **Framework**: [Next.js](https://nextjs.org/) (with App Router & Server Components)
-- **UI Library**: [React](https://react.dev/) with [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **UI Components**: [ShadCN UI](https://ui.shadcn.com/)
-- **Backend & Database**: [Firebase](https://firebase.google.com/) (Authentication, Firestore for database)
-- **Generative AI**: [Genkit](https://firebase.google.com/docs/genkit) (for the AI summarization feature)
+---
 
-## Getting Started
+## 🌟 Features (Role-based Workflows)
 
-To get a local copy up and running, follow these simple steps.
+### 👨‍💼 Admin
+- Manage hospital staff accounts
+- Create new doctors/receptionists/pharmacists
+- Oversee system activity
 
-### Prerequisites
+### 👩‍💻 Receptionist
+- Register new patients
+- Schedule appointments in real-time
+- Assign patients to doctors
 
-- Node.js (v18 or later)
-- npm or yarn
+### 👨‍⚕️ Doctor
+- View daily appointments instantly
+- AI-powered **Patient Note Summarizer** (Gemini via Genkit)
+- Create prescriptions using **voice-to-text**
 
-### Installation
+### 💊 Pharmacist
+- Access real-time prescription queue
+- Process prescriptions and update status
+- Ensure smooth handover from doctor to pharmacy
 
-1. **Clone the repository:**
-   ```sh
-   git clone https://github.com/Iankitsinghak/MediChain.git
-   cd MediChain
-   ```
+---
 
-2. **Install NPM packages:**
-   ```sh
-   npm install
-   ```
+## 🛠️ Tech Stack
 
-3. **Set up Firebase:**
-   - Create a new project on the [Firebase Console](https://console.firebase.google.com/).
-   - Enable **Firestore Database** and **Firebase Authentication** (with the Email/Password provider).
-   - Go to your Project Settings, and under "Your apps", create a new Web App.
-   - Copy the `firebaseConfig` object and paste it into `src/lib/firebase.ts`.
+- **Frontend:** [Next.js 15](https://nextjs.org/) (App Router) + React + TypeScript  
+- **UI & Styling:** [ShadCN UI](https://ui.shadcn.com/), [Tailwind CSS](https://tailwindcss.com/)  
+- **Backend & Database:** [Firebase Firestore](https://firebase.google.com/docs/firestore) + Firebase Authentication  
+- **AI Integration:** [Google AI SDK](https://ai.google.dev/) (Gemini) via [Genkit](https://firebase.google.com/products/genkit)  
+- **Deployment:** [Vercel](https://vercel.com/) (frontend), Firebase Hosting/Functions (backend AI flows)
 
-4. **Run the development server:**
-   ```sh
-   npm run dev
-   ```
-   Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
+---
 
-## Available Roles & How to Use
+## ⚙️ Installation & Setup
 
-1.  **Admin**: The first account should be created via the "Sign Up" page. This account can then create other staff members from the "Manage Staff" section of the admin dashboard.
-2.  **Doctor, Receptionist, Pharmacist**: These accounts must be created by an Admin. Once created, they can log in using the "Login" page by selecting their role, name, and entering their password.
+### 1️⃣ Clone Repository
+```bash
+git clone https://github.com/your-username/MediTrack.git
+cd MediTrack
