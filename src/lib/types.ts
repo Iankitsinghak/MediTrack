@@ -1,5 +1,6 @@
 
 
+
 export enum UserRole {
   Admin = 'Admin',
   Doctor = 'Doctor',
@@ -15,6 +16,7 @@ export interface BaseUser {
   phone: string;
   role: UserRole;
   createdAt: any; // Firestore timestamp
+  story?: string;
 }
 
 export interface Doctor extends BaseUser {
@@ -73,11 +75,12 @@ export interface Supplier {
 
 export interface Prescription {
     id: string;
+    patientId: string;
     patientName: string;
+    doctorId: string;
     doctorName: string;
     medication: string;
-    dosage: string;
-    date: Date;
+    date: any; // Firestore timestamp
     status: 'Pending' | 'Processed';
 }
 

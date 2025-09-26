@@ -1,7 +1,7 @@
 
 "use server"
 
-import { summarizeConsultationNotes, SummarizeConsultationNotesOutput } from "@/ai/flows/summarize-patient-consultation-notes"
+import { summarizeConsultationNotes, type SummarizeConsultationNotesOutput } from "@/ai/flows/summarize-patient-consultation-notes"
 
 export interface FormState {
   summary: SummarizeConsultationNotesOutput | null;
@@ -22,16 +22,17 @@ export async function handleSummarization(
   }
 
   try {
-    const summary = await summarizeConsultationNotes({ notes })
+    const summary = await summarizeConsultationNotes({ notes });
     return {
       summary: summary,
       error: null,
     }
   } catch (error) {
     console.error("Summarization error:", error)
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
     return {
       summary: null,
-      error: "An unexpected error occurred while summarizing the notes. Please try again.",
+      error: `An unexpected error occurred while summarizing the notes. Please try again. Details: ${errorMessage}`,
     }
   }
 }
