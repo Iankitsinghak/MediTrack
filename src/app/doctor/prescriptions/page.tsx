@@ -22,6 +22,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 
 interface CustomWindow extends Window {
   SpeechRecognition: any;
@@ -37,7 +38,7 @@ const prescriptionSchema = z.object({
 
 export default function PrescriptionsPage() {
     const { toast } = useToast();
-    const { user: doctor } = useAuthUser<Doctor>('doctors');
+    const { user: doctor, loading: loadingDoctor } = useAuthUser<Doctor>('doctors');
     
     const patientQuery = useMemo(() => doctor?.uid ? where('doctorId', '==', doctor.uid) : undefined, [doctor?.uid]);
     const { data: patients, loading: loadingPatients } = useFirestore<Patient>('patients', patientQuery);
@@ -87,15 +88,13 @@ export default function PrescriptionsPage() {
                 });
                 setIsListening(false);
             };
-
-            recognitionRef.current.onend = () => {
+            
+            const handleEnd = () => {
                 if (recognitionRef.current.manualStop) return;
                 setIsListening(false);
-                toast({
-                    title: "Dictation Stopped",
-                    description: "Your voice input has been captured.",
-                });
             };
+
+            recognitionRef.current.onend = handleEnd;
             
         } else {
              setIsSpeechRecognitionSupported(false);
@@ -123,6 +122,10 @@ export default function PrescriptionsPage() {
             recognitionRef.current.manualStop = true;
             recognitionRef.current.stop();
             setIsListening(false);
+             toast({
+                title: "Dictation Stopped",
+                description: "Your voice input has been captured.",
+            });
         } else {
             recognitionRef.current.manualStop = false;
             recognitionRef.current.start();
