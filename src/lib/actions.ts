@@ -6,6 +6,7 @@ import { summarizeConsultationNotes, type SummarizeConsultationNotesOutput } fro
 export interface FormState {
   summary: SummarizeConsultationNotesOutput | null;
   error: string | null;
+  key: number; // Add a key to force re-rendering of children
 }
 
 export async function handleSummarization(
@@ -18,6 +19,7 @@ export async function handleSummarization(
     return {
       summary: null,
       error: "Consultation notes cannot be empty.",
+      key: prevState.key + 1,
     }
   }
 
@@ -26,6 +28,7 @@ export async function handleSummarization(
     return {
       summary: summary,
       error: null,
+      key: prevState.key + 1,
     }
   } catch (error) {
     console.error("Summarization error:", error)
@@ -33,6 +36,7 @@ export async function handleSummarization(
     return {
       summary: null,
       error: `An unexpected error occurred while summarizing the notes. Please try again. Details: ${errorMessage}`,
+      key: prevState.key + 1,
     }
   }
 }

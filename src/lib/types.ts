@@ -2,6 +2,7 @@
 
 
 
+
 export enum UserRole {
   Admin = 'Admin',
   Doctor = 'Doctor',
@@ -81,6 +82,7 @@ export interface Prescription {
     doctorId: string;
     doctorName: string;
     medication: string;
+    dosage: string;
     date: any; // Firestore timestamp
     status: 'Pending' | 'Processed';
 }

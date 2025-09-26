@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useFormStatus } from "react-dom"
@@ -14,6 +15,7 @@ import { useToast } from "@/hooks/use-toast"
 const initialState: FormState = {
   summary: null,
   error: null,
+  key: 0,
 }
 
 const defaultNotes = `Patient: John Appleseed, 45M.
@@ -120,7 +122,7 @@ export function PatientSummarizer() {
         description: state.error,
       })
     }
-  }, [state.error, toast])
+  }, [state.error, state.key, toast])
 
   return (
     <Card className="shadow-lg">
@@ -152,7 +154,7 @@ export function PatientSummarizer() {
             <SubmitButton />
           </div>
         </form>
-        {pending ? <SummarySkeleton /> : <SummaryResult summary={state.summary} />}
+        {pending ? <SummarySkeleton /> : <SummaryResult key={state.key} summary={state.summary} />}
       </CardContent>
     </Card>
   )

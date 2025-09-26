@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -32,13 +32,18 @@ declare const window: CustomWindow;
 const prescriptionSchema = z.object({
     patientId: z.string({ required_error: "Please select a patient." }),
     medication: z.string().min(3, "Medication details are required."),
+    dosage: z.string().min(3, "Dosage information is required.")
 });
 
 export default function PrescriptionsPage() {
     const { toast } = useToast();
-    const { user: doctor, loading: loadingDoctor } = useAuthUser<Doctor>('doctors');
-    const { data: patients, loading: loadingPatients } = useFirestore<Patient>('patients', where('doctorId', '==', doctor?.uid || ''));
-    const { data: prescriptions, loading: loadingPrescriptions } = useFirestore<Prescription>('prescriptions', where('doctorId', '==', doctor?.uid || ''));
+    const { user: doctor } = useAuthUser<Doctor>('doctors');
+    
+    const patientQuery = useMemo(() => doctor?.uid ? where('doctorId', '==', doctor.uid) : undefined, [doctor?.uid]);
+    const { data: patients, loading: loadingPatients } = useFirestore<Patient>('patients', patientQuery);
+    
+    const prescriptionQuery = useMemo(() => doctor?.uid ? where('doctorId', '==', doctor.uid) : undefined, [doctor?.uid]);
+    const { data: prescriptions, loading: loadingPrescriptions } = useFirestore<Prescription>('prescriptions', prescriptionQuery);
 
     const [isListening, setIsListening] = useState(false);
     const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(false);
@@ -49,6 +54,7 @@ export default function PrescriptionsPage() {
         defaultValues: {
             patientId: "",
             medication: "",
+            dosage: "",
         }
     });
 
@@ -56,25 +62,23 @@ export default function PrescriptionsPage() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             setIsSpeechRecognitionSupported(true);
-            const recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+            recognitionRef.current.lang = 'en-US';
 
-            recognition.onresult = (event: any) => {
-                let interimTranscript = '';
+            recognitionRef.current.onresult = (event: any) => {
                 let finalTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
                         finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
                     }
                 }
-                form.setValue("medication", form.getValues("medication") + finalTranscript);
+                const currentMedication = form.getValues("medication");
+                form.setValue("medication", currentMedication + finalTranscript);
             };
 
-            recognition.onerror = (event: any) => {
+            recognitionRef.current.onerror = (event: any) => {
                 console.error("Speech recognition error", event.error);
                 toast({
                     variant: "destructive",
@@ -84,17 +88,15 @@ export default function PrescriptionsPage() {
                 setIsListening(false);
             };
 
-            recognition.onend = () => {
-                if (isListening) {
-                    setIsListening(false);
-                    toast({
-                        title: "Dictation Stopped",
-                        description: "Your voice input has been captured.",
-                    });
-                }
+            recognitionRef.current.onend = () => {
+                if (recognitionRef.current.manualStop) return;
+                setIsListening(false);
+                toast({
+                    title: "Dictation Stopped",
+                    description: "Your voice input has been captured.",
+                });
             };
             
-            recognitionRef.current = recognition;
         } else {
              setIsSpeechRecognitionSupported(false);
         }
@@ -105,7 +107,7 @@ export default function PrescriptionsPage() {
             }
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [toast, form, isListening]);
+    }, []);
 
     const handleMicClick = () => {
         if (!isSpeechRecognitionSupported) {
@@ -118,9 +120,11 @@ export default function PrescriptionsPage() {
         }
 
         if (isListening) {
+            recognitionRef.current.manualStop = true;
             recognitionRef.current.stop();
             setIsListening(false);
         } else {
+            recognitionRef.current.manualStop = false;
             recognitionRef.current.start();
             setIsListening(true);
             toast({
@@ -149,6 +153,7 @@ export default function PrescriptionsPage() {
                 doctorId: doctor.uid,
                 doctorName: doctor.fullName,
                 medication: values.medication,
+                dosage: values.dosage,
                 date: serverTimestamp(),
                 status: "Pending"
             });
@@ -165,11 +170,13 @@ export default function PrescriptionsPage() {
         }
     }
 
-    const sortedPrescriptions = [...prescriptions].sort((a, b) => {
+    const sortedPrescriptions = useMemo(() => {
+      return [...prescriptions].sort((a, b) => {
         const dateA = a.date?.toDate ? a.date.toDate() : new Date();
         const dateB = b.date?.toDate ? b.date.toDate() : new Date();
         return dateB.getTime() - dateA.getTime();
-    });
+      });
+    }, [prescriptions]);
 
 
     return (
@@ -179,7 +186,7 @@ export default function PrescriptionsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Create New Prescription</CardTitle>
-                    <CardDescription>Write a new prescription or use voice-to-text to dictate.</CardDescription>
+                    <CardDescription>Write a new prescription or use voice-to-text to dictate medication.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {!isSpeechRecognitionSupported && (
@@ -199,7 +206,7 @@ export default function PrescriptionsPage() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Patient</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={loadingPatients || !doctor}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder={loadingPatients ? "Loading patients..." : "Select a patient"} />
@@ -221,24 +228,41 @@ export default function PrescriptionsPage() {
                                 name="medication"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Medication & Dosage</FormLabel>
+                                        <FormLabel>Medication</FormLabel>
                                         <FormControl>
-                                            <Textarea 
-                                                placeholder="e.g., Metoprolol 25mg, 1 tablet twice daily..."
-                                                className="min-h-[150px]"
-                                                {...field}
-                                            />
+                                            <div className="relative">
+                                                <Textarea 
+                                                    placeholder="e.g., Metoprolol 25mg..."
+                                                    className="min-h-[100px] pr-12"
+                                                    {...field}
+                                                />
+                                                <Button type="button" variant={isListening ? "destructive" : "outline"} size="icon" onClick={handleMicClick} disabled={!isSpeechRecognitionSupported} className="absolute right-2 top-1/2 -translate-y-1/2">
+                                                    <Mic className="h-4 w-4" />
+                                                    <span className="sr-only">{isListening ? "Stop Listening" : "Start Dictation"}</span>
+                                                </Button>
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            
+                             <FormField
+                                control={form.control}
+                                name="dosage"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Dosage & Instructions</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., 1 tablet twice daily" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
 
-                            <div className="flex justify-between items-center">
-                                <Button type="button" variant={isListening ? "destructive" : "outline"} size="icon" onClick={handleMicClick} disabled={!isSpeechRecognitionSupported}>
-                                    <Mic className="h-4 w-4" />
-                                    <span className="sr-only">{isListening ? "Stop Listening" : "Start Dictation"}</span>
-                                </Button>
+
+                            <div className="flex justify-end">
                                 <Button type="submit" disabled={form.formState.isSubmitting}>
                                     {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     <FilePlus2 className="mr-2 h-4 w-4" />
@@ -263,6 +287,7 @@ export default function PrescriptionsPage() {
                                     <TableHead>Date</TableHead>
                                     <TableHead>Patient</TableHead>
                                     <TableHead>Medication</TableHead>
+                                    <TableHead>Dosage</TableHead>
                                     <TableHead>Status</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -272,7 +297,8 @@ export default function PrescriptionsPage() {
                                         <TableRow key={i}>
                                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                                             <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                                            <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                                             <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                                         </TableRow>
                                     ))
@@ -282,6 +308,7 @@ export default function PrescriptionsPage() {
                                             <TableCell>{p.date?.toDate ? format(p.date.toDate(), "PPP") : '...'}</TableCell>
                                             <TableCell className="font-medium">{p.patientName}</TableCell>
                                             <TableCell>{p.medication}</TableCell>
+                                            <TableCell>{p.dosage}</TableCell>
                                             <TableCell>
                                                 <Badge variant={p.status === 'Pending' ? 'destructive' : 'secondary'}>{p.status}</Badge>
                                             </TableCell>
@@ -289,7 +316,7 @@ export default function PrescriptionsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">
+                                        <TableCell colSpan={5} className="h-24 text-center">
                                             No prescription history found.
                                         </TableCell>
                                     </TableRow>
