@@ -1,8 +1,9 @@
+
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { format, startOfDay } from "date-fns"
-import { getPatients, scheduleAppointment, getAppointments } from "@/lib/data"
+import { scheduleAppointment } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -31,15 +32,10 @@ type AppointmentWithDate = Omit<Appointment, 'date'> & { date: Date | any }
 export default function AppointmentsPage() {
     const { toast } = useToast();
     
-    // State for local mock data
-    const [allPatients, setAllPatients] = useState<Patient[]>([]);
-    
+    const { data: allPatients, loading: loadingPatients } = useFirestore<Patient>('patients');
     const { data: doctors, loading: loadingDoctors } = useFirestore<Doctor>('doctors');
     const { data: firestoreAppointments, loading: loadingAppointments } = useFirestore<AppointmentWithDate>('appointments');
     
-    useEffect(() => {
-        setAllPatients(getPatients());
-    }, []);
 
     const [date, setDate] = useState<Date | undefined>(new Date())
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -189,7 +185,7 @@ export default function AppointmentsPage() {
                                             <FormLabel>Patient</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
-                                                    <SelectTrigger><SelectValue placeholder="Select a patient" /></SelectTrigger>
+                                                    <SelectTrigger><SelectValue placeholder={loadingPatients ? "Loading..." : "Select a patient"} /></SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
                                                     {allPatients.map(p => <SelectItem key={p.id} value={p.id}>{p.fullName}</SelectItem>)}
